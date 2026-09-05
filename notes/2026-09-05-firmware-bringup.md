@@ -25,3 +25,13 @@ The user confirmed readable upright text and working Settings/Back touch. Photos
 The QR/USB-diagnostics build booted without a crash, but startup internal heap was 30,672 bytes and largest block 15,872 bytes, below the 32/16 KiB gates. Applied the planned fallback to a single 480 × 24 RGB565 stripe (23,040 bytes); both SPI transfer limit and adapter buffer height changed together. QR uses a 256 × 256 one-bit canvas inside the existing 64 KiB LVGL heap, with a white quiet zone. This does not add a full-screen framebuffer.
 
 The 24-row QR build was flashed using generated IDF arguments and booted successfully. Startup internal heap: 53,872 bytes; largest block: 38,912 bytes; network stack high-water mark: 5,220 bytes. These pass the startup memory gates. No crash or allocation error appeared during bounded boot capture. Phone QR decoding, association, and portal completion are awaiting the user's physical check; memory under live HTTP and portal load remains unverified.
+
+## Phone QR verification and portal correction
+
+The user's next photos confirm that the iPhone camera recognizes the Wi-Fi QR payload and the phone joins SparkDash-0428. The expected “No Internet Connection” label is visible. Safari reaches 192.168.4.1 but receives the application's “Use the setup Wi-Fi” rejection, so the portal flow was not yet successful.
+
+Source inspection found the cause: ESP-IDF's HTTP server creates an IPv6 listener when IPv6 is enabled, and lwIP converts IPv4 local socket addresses into IPv4-mapped IPv6 addresses. The original guard supplied a sockaddr_in-sized buffer and compared its IPv4 field regardless of family. The fix uses sockaddr_storage and accepts either plain IPv4 or IPv4-mapped IPv6 only when the actual local destination is the setup AP address. It does not trust the Host header or remove AP-only restrictions.
+
+ASan/UBSan host regression tests pass for both valid forms, other local addresses, native IPv6, truncated address structures, and a real dual-stack socket connection. The phone must reload the portal after the updated firmware is installed to verify the complete flow.
+
+The portal correction was flashed successfully and completed its bounded boot check: setup AP and DHCP started; free internal heap 53,856 bytes and largest block 38,912 bytes; no crash in capture. The current setup session is left running for the phone retry.

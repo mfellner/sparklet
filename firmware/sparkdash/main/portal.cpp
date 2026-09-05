@@ -5,6 +5,7 @@
 #include "esp_wifi.h"
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
+#include "portal_address.hpp"
 #include <cstring>
 #include <string>
 namespace app {
@@ -27,10 +28,12 @@ static std::string quote(const char *s) {
     return r + '"';
 }
 static bool ap_only(httpd_req_t *r) {
-    sockaddr_in local{};
+    sockaddr_storage local{};
+    in_addr setup_address{};
+    inet_pton(AF_INET, "192.168.4.1", &setup_address);
     socklen_t len = sizeof local;
     if (getsockname(httpd_req_to_sockfd(r), reinterpret_cast<sockaddr *>(&local), &len) ||
-        local.sin_addr.s_addr != inet_addr("192.168.4.1")) {
+        !local_address_matches(local, len, setup_address)) {
         httpd_resp_send_err(r, HTTPD_403_FORBIDDEN, "Use the setup Wi-Fi");
         return false;
     }

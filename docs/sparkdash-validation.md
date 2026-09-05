@@ -10,9 +10,9 @@ Updated 2026-09-05. This is a development build, not a completed release accepta
 | Shared core tests | ASan/UBSan tests passed for parser, normalization, configuration, formatting, list reconciliation and scheduler. |
 | Controlled host HTTP | Five unittest groups passed: normal/chunked, list variations, status errors, interrupted/oversized/malformed/stalled responses. Does not validate IDF transport. |
 | Display / touch | User confirmed upright readable screen and Settings/Back touch; supplied photos. Full corner/swipe/dim testing pending. |
-| QR setup | Two-step Wi-Fi/URL QR build compiled, flashed and booted. Physical decoding and phone join pending. |
+| QR setup | Two-step Wi-Fi/URL QR build compiled, flashed and booted. iPhone photos confirm decoding and successful Wi-Fi join. |
 | Startup memory | 24-row draw stripe: 53,872 B free internal heap, 38,912 B largest block; network stack high-water mark 5,220 B. |
-| Phone provisioning | Earlier text-only build: user could not join AP. Cause not yet established. QR-assisted retry pending. |
+| Phone provisioning | QR-assisted join succeeded. Portal incorrectly rejected IPv4-mapped IPv6 local addresses; corrected and host regression-tested. Phone form completion pending. |
 | Live five-node display | Not yet verified on the ESP32. Host parsing of observed API responses passed. |
 | Recovery / performance | Physical Wi-Fi, DNS/mDNS, IDF HTTP faults and timing measurements pending. |
 | 24-hour soak | Not started; requires successful provisioning and live metrics first. |
