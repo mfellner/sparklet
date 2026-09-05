@@ -12,13 +12,13 @@ One node at a time. Real metrics from your existing server. No server changes.
 
 ## On the real device
 
-These are user-supplied photographs of an earlier development build, not generated UI mockups.
+These close-ups are cropped from real device photographs of an earlier development build. The desk, hands and cable are outside the crop; the photographed UI is unchanged.
 
 <table>
   <tr>
-    <td width="33%"><img src="docs/assets/head-overview.jpeg" alt="Head node Overview showing GPU allocation, temperature, power, available memory and model throughput" width="280"></td>
-    <td width="33%"><img src="docs/assets/worker-overview.jpeg" alt="Worker node Overview showing metrics and its relationship to the head node" width="280"></td>
-    <td width="33%"><img src="docs/assets/node-details.jpeg" alt="Scrollable node Details showing GPU, CPU and root storage values" width="280"></td>
+    <td width="33%"><img src="docs/assets/head-overview.png" alt="Head node Overview showing GPU allocation, temperature, power, available memory and model throughput" width="280"></td>
+    <td width="33%"><img src="docs/assets/worker-overview.png" alt="Worker node Overview showing metrics and its relationship to the head node" width="280"></td>
+    <td width="33%"><img src="docs/assets/node-details.png" alt="Scrollable node Details showing GPU, CPU and root storage values" width="280"></td>
   </tr>
   <tr>
     <td align="center"><strong>Head node</strong></td>
