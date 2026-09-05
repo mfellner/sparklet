@@ -94,3 +94,8 @@ Expanded shared host tests for unknown/standalone roles, worker compatibility an
 Candidate `sparkdash-v1-rc1` was generated from clean commit 3376e53, extracted under ignored `.local/bundle-check-rc1`, and checked for ZIP integrity, all checksums and generated flash references. Its bundled enumeration helper selected the known USB identity. Flashing from the extracted directory with its own `flash_args` completed with successful data verification (`logs/rc1-bundle-flash.log`); NVS was not erased.
 
 The following 60-second runtime check failed (`logs/rc1-bundle-live.json`): zero STATUS samples; raw output stopped after the bootloader loaded the application and disabled early entropy. A second bounded monitor received no bytes. An esptool 5.4.0 `run` connection attempt also received no serial data (`logs/rc1-reset.txt`), although the expected USB port remained enumerated and no process held it. This does not establish whether the application or only USB communication failed. Physical screen state and power-cycle recovery are needed before accepting the candidate. No additional flash write or protection override was attempted.
+
+
+## USB-specific recovery attempt
+
+After the request to finish v1 urgently, another bounded STATUS check still received zero bytes. Inspected the pinned esptool 5.4.0 built-in USB-Serial-JTAG reset implementation and tried one `--before usb-reset --connect-attempts 1 flash-id` probe. It also failed with no serial data (`logs/rc1-usb-reset-probe.txt`). This was a reset/read-only identification attempt, not a flash write or security override. Both ordinary and USB-specific software entry attempts have now failed; physical power-cycle and screen observation remain the next required action.
