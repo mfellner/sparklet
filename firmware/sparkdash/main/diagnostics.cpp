@@ -28,12 +28,13 @@ static void diagnostics_task(void *) {
                 snapshot(v);
                 ESP_LOGI("diagnostics",
                          "uptime_ms=%llu nodes=%u selected=%u connected=%u requests=%u errors=%u "
-                         "heap=%u largest=%u stack=%u",
+                         "heap=%u largest=%u stack=%u net_stack=%u ui_stack=%u",
                          (unsigned long long)now_ms(), unsigned(v.count), unsigned(v.selected),
                          unsigned(v.connected), unsigned(v.requests), unsigned(v.errors),
                          unsigned(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
                          unsigned(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL)),
-                         unsigned(uxTaskGetStackHighWaterMark(nullptr)));
+                         unsigned(uxTaskGetStackHighWaterMark(nullptr)),
+                         unsigned(network_stack_free.load()), unsigned(ui_stack_free.load()));
             }
             used = 0;
             overflow = false;
@@ -50,6 +51,6 @@ void diagnostics_start() {
         config.tx_buffer_size = 256;
         ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&config));
     }
-    assert(xTaskCreate(diagnostics_task, "spark_diag", 4096, nullptr, 2, nullptr) == pdPASS);
+    assert(xTaskCreate(diagnostics_task, "spark_diag", 5120, nullptr, 2, nullptr) == pdPASS);
 }
 } // namespace app

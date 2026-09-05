@@ -65,6 +65,7 @@ void on_action(lv_event_t *e) {
         break;
     case 6:
         send(CommandType::Setup);
+        page = Page::Overview;
         break;
     case 7:
         send(CommandType::CancelSetup);
@@ -74,6 +75,7 @@ void on_action(lv_event_t *e) {
         break;
     case 9:
         send(CommandType::Forget);
+        page = Page::Overview;
         break;
     case 11:
         page = Page::SetupLink;
@@ -253,6 +255,8 @@ void tick(lv_timer_t *) {
         spark::copy_text(b, sizeof b, view.status);
     else if (!view.connected)
         spark::copy_text(b, sizeof b, "Wi-Fi disconnected; retrying");
+    else if (*n.error && !n.received)
+        spark::copy_text(b, sizeof b, n.error);
     else if (*n.error)
         snprintf(b, sizeof b, "%s | received %llus ago", n.error,
                  (unsigned long long)((now_ms() - n.received_ms) / 1000));
@@ -310,9 +314,9 @@ void tick(lv_timer_t *) {
                  unsigned(view.count));
         set(position, b);
     } else if (page == Page::Details) {
-        set(title, n.name);
+        set(title, "Node details");
         char mem[96], disk[96], rx[48], tx[48], cpu[48], temp[48], gpu[48], avail[48], watts[96],
-            gen[48], prefill[48];
+            gen[48], prefill[48], gpu_temp[48];
         pair(mem, sizeof mem, n.used, n.total, true);
         pair(disk, sizeof disk, n.disk_used, n.disk_total, true);
         spark::format_rate(rx, sizeof rx, n.rx);
@@ -320,22 +324,31 @@ void tick(lv_timer_t *) {
         spark::format_value(cpu, sizeof cpu, n.cpu_usage, "%");
         spark::format_value(temp, sizeof temp, n.cpu_temp, "°C");
         spark::format_value(gpu, sizeof gpu, n.usage, "%");
+        spark::format_value(gpu_temp, sizeof gpu_temp, n.temperature, "°C");
         spark::format_memory(avail, sizeof avail, n.available);
         pair(watts, sizeof watts, n.power, n.power_limit, false);
         spark::format_value(gen, sizeof gen, n.generation, " tok/s", 1);
         spark::format_value(prefill, sizeof prefill, n.prefill, " tok/s", 1);
         snprintf(b, sizeof b,
-                 "%s\n%s\n\nGPU allocation\n%s\nAvailable: %s\nGPU usage: %s\nPower: %s\n\nCPU "
+                 "%s\n%s\n%s\n\nGPU allocation\n%s\nAvailable: %s\nGPU usage: %s\nGPU temperature: "
+                 "%s\nPower: %s\n\nCPU "
                  "usage: %s\nCPU temperature: %s\n\nRoot storage\n%s\n\nNetwork: %s\nRX: %s\nTX: "
-                 "%s\n\n%s\n%s\n%s\nGeneration: %s\nPrefill: %s",
+                 "%s\n\n%s\n%s\n%s",
+                 n.name,
                  n.role == spark::Role::Head     ? "Head"
                  : n.role == spark::Role::Worker ? "Worker"
                                                  : "Standalone",
                  n.online == spark::Online::Online    ? "Online"
                  : n.online == spark::Online::Offline ? "Offline"
                                                       : "Waiting",
-                 mem, avail, gpu, watts, cpu, temp, disk, n.iface, rx, tx, n.backend,
-                 n.role == spark::Role::Worker ? n.worker : n.model, n.head, gen, prefill);
+                 mem, avail, gpu, gpu_temp, watts, cpu, temp, disk, n.iface, rx, tx, n.backend,
+                 n.role == spark::Role::Worker ? n.worker
+                                               : (*n.model ? n.model : "LLM unavailable"),
+                 n.head);
+        if (n.role != spark::Role::Worker) {
+            size_t used = strlen(b);
+            snprintf(b + used, sizeof b - used, "\nGeneration: %s\nPrefill: %s", gen, prefill);
+        }
         set(details, b);
     } else if (page == Page::Settings) {
         snprintf(b, sizeof b,
@@ -376,6 +389,7 @@ void tick(lv_timer_t *) {
             last_brightness = desired;
         }
     }
+    ui_stack_free = uxTaskGetStackHighWaterMark(nullptr);
 }
 bool touch_filter(bool down, int x, int y) {
     if (down && !was_down) {

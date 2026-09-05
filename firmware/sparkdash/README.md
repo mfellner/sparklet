@@ -68,4 +68,14 @@ python3 tools/mock_sparkdash.py --host 0.0.0.0 --port 5556
 
 Use the host's LAN IPv4 address and a scenario prefix such as `/chunked`, `/stall`, `/oversized`, or `/rate` as the configured server base path. Do not disrupt production DGX services or the router for failure testing.
 
-USB diagnostics accept newline-terminated `STATUS`, `NEXT`, and `PREV`. They expose counters and memory, not credentials, and are not a shell. Physical touch, phone setup, actual IDF timeout recovery, live data accuracy, performance, and the 24-hour soak remain separate hardware acceptance gates. See the bring-up notes for tested facts.
+USB diagnostics accept newline-terminated `STATUS`, `NEXT`, and `PREV`. They expose counters and memory, not credentials, and are not a shell. Physical touch, phone setup, actual IDF timeout recovery, live data accuracy, performance, remain separate hardware acceptance gates. The user explicitly excluded the 24-hour soak; this release makes no 24-hour stability claim. See the bring-up notes for tested facts.
+
+## Create a distributable bundle
+
+From a clean, committed checkout with ESP-IDF activated:
+
+```sh
+python3 tools/package_release.py releases/sparkdash-v1-candidate
+```
+
+The tool builds first, verifies the pinned SDK/target, copies generated flash arguments and binaries, includes the dependency lock and exact build configuration, and emits revision/compiler metadata plus SHA-256 checksums. It refuses an existing destination or a dirty checkout. Factory backups, credentials, NVS data and raw logs are excluded. Follow `FLASH.txt` inside the bundle; its flash arguments are relative to that directory. Packaging does not itself pass hardware acceptance gates.

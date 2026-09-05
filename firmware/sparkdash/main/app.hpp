@@ -36,6 +36,7 @@ extern spark::Cache cache;
 extern View state;
 extern QueueHandle_t commands;
 extern std::atomic<bool> wifi_connected, scan_done;
+extern std::atomic<uint32_t> network_stack_free, ui_stack_free;
 uint64_t now_ms();
 void snapshot(View &);
 bool send(CommandType);

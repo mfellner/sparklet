@@ -15,7 +15,7 @@ Updated 2026-09-05. This is a development build, not a completed release accepta
 | Phone provisioning | QR-assisted join succeeded. Portal incorrectly rejected IPv4-mapped IPv6 local addresses; corrected and host regression-tested. Subsequent phone screenshot confirms saved Wi-Fi and successful connection. |
 | Live five-node display | Photos show five discovered nodes and live cards at positions 1, 2 and 5, plus Details. Simultaneous API/value comparison for every node remains pending. |
 | Recovery / performance | Physical Wi-Fi, DNS/mDNS, IDF HTTP faults and timing measurements pending. |
-| 24-hour soak | Not started; requires successful provisioning and live metrics first. |
+| 24-hour soak | Explicitly excluded by the user from v1 completion; not performed. |
 | Full release / restore gate | Pending. Do not treat a generated build bundle as passed release validation. |
 
-Raw boot logs and backups remain ignored. Startup memory alone does not establish worst-case memory acceptance. The full 24-hour soak must actually complete before release sign-off, including controlled failures, periodic navigation, stack measurements and comparable post-request heap measurements.
+Raw boot logs and backups remain ignored. Startup memory alone does not establish worst-case memory acceptance. The user excluded the 24-hour soak from v1 completion. Bounded controlled-failure, navigation, stack and memory measurements remain required; no long-duration reliability claim is made.

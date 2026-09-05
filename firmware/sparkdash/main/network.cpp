@@ -22,6 +22,7 @@ spark::Cache cache;
 View state;
 QueueHandle_t commands;
 std::atomic<bool> wifi_connected{false}, scan_done{true};
+std::atomic<uint32_t> network_stack_free{0}, ui_stack_free{0};
 static spark::Connection saved, candidate;
 static bool has_saved = false, testing = false, setup_mode = false, nvs_ready = false;
 static uint64_t test_deadline = 0, ap_stop_at = 0, reconnect_at = 0;
@@ -527,6 +528,7 @@ static void worker(void *) {
                      (unsigned)uxTaskGetStackHighWaterMark(nullptr), state.requests, state.errors,
                      (unsigned)cache.count);
         }
+        network_stack_free = uxTaskGetStackHighWaterMark(nullptr);
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
