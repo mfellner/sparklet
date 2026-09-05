@@ -17,6 +17,7 @@ The [validation report](../sparkdash-validation.md) is the current authority for
 | Install the SDK, build, change and debug firmware | [Development guide](development.md) |
 | Run host, transport, live-data and physical checks | [Testing and acceptance](testing.md) |
 | Create, verify, flash and troubleshoot a release | [Release and operations](operations.md) |
+| Publish the finished project to GitHub | [Publication handoff](publication.md) |
 | Identify the board and its wiring | [Hardware reference](../hardware.md), [source provenance](../../firmware/sparkdash/PROVENANCE.md) |
 | Back up or restore the entire flash | [Recovery procedure](../recovery.md) |
 | Inspect the original research and references | [Feasibility](../sparkdash-feasibility.md), [references](../references.md) |
