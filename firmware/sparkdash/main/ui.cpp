@@ -377,18 +377,21 @@ void tick(lv_timer_t *) {
         }
     }
 
-    unsigned desired = view.preferences.brightness;
-    if (page != Page::Settings) {
-        if (!view.setup && now_ms() - last_touch > uint64_t(view.preferences.dim_seconds) * 1000) {
-            dimmed = true;
-            desired = 10;
-        } else if (dimmed)
-            desired = 10;
-        if (desired != last_brightness) {
-            board::brightness(desired);
-            last_brightness = desired;
-        }
+    unsigned desired = page == Page::Settings && brightness_slider
+                           ? unsigned(lv_slider_get_value(brightness_slider))
+                           : view.preferences.brightness;
+    if (view.setup)
+        dimmed = false; // Keep setup QR codes readable.
+    else if (now_ms() - last_touch > uint64_t(view.preferences.dim_seconds) * 1000)
+        dimmed = true;
+    if (dimmed)
+        desired = 10;
+    if (desired != last_brightness) {
+        board::brightness(desired);
+        last_brightness = desired;
     }
+    ui_brightness = last_brightness;
+    ui_dimmed = dimmed;
     ui_stack_free = uxTaskGetStackHighWaterMark(nullptr);
 }
 bool touch_filter(bool down, int x, int y) {
@@ -398,8 +401,11 @@ bool touch_filter(bool down, int x, int y) {
         consume_touch = dimmed;
         if (dimmed) {
             dimmed = false;
-            board::brightness(view.preferences.brightness);
-            last_brightness = view.preferences.brightness;
+            unsigned active = page == Page::Settings && brightness_slider
+                                  ? unsigned(lv_slider_get_value(brightness_slider))
+                                  : view.preferences.brightness;
+            board::brightness(active);
+            last_brightness = active;
         }
         last_touch = now_ms();
     }

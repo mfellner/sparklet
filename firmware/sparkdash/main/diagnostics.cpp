@@ -43,13 +43,16 @@ static void diagnostics_task(void *) {
                 snapshot(v);
                 ESP_LOGI("diagnostics",
                          "uptime_ms=%llu nodes=%u selected=%u connected=%u requests=%u errors=%u "
-                         "heap=%u largest=%u stack=%u net_stack=%u ui_stack=%u",
+                         "heap=%u largest=%u stack=%u net_stack=%u ui_stack=%u brightness=%u "
+                         "dimmed=%u dim_after=%u",
                          (unsigned long long)now_ms(), unsigned(v.count), unsigned(v.selected),
                          unsigned(v.connected), unsigned(v.requests), unsigned(v.errors),
                          unsigned(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
                          unsigned(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL)),
                          unsigned(uxTaskGetStackHighWaterMark(nullptr)),
-                         unsigned(network_stack_free.load()), unsigned(ui_stack_free.load()));
+                         unsigned(network_stack_free.load()), unsigned(ui_stack_free.load()),
+                         unsigned(ui_brightness.load()), unsigned(ui_dimmed.load()),
+                         unsigned(v.preferences.dim_seconds));
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
                 char id[193], error[385];
                 spark::percent_encode(v.node.id, id, sizeof id);

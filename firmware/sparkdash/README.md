@@ -47,7 +47,7 @@ idf.py -p /dev/cu.usbmodem2101 flash
 
 This uses the project's generated partition/flash arguments and preserves NVS. Capture boot logs with the bounded root helper; opening USB can reset the device. No OTA partitions or filesystem are present. Forgetting credentials requires on-device confirmation.
 
-Factory restoration is a full-flash write of the verified original backup at address zero, using the pinned esptool 5.4.0 and the discovered device. Verify its SHA-256 and exact size before any restore. The backup read/checksum is verified; **restoring it has not been physically tested**. A restore overwrites current settings. Never force protection overrides or change eFuses.
+Factory restoration is a full-flash write of the verified original backup at address zero, using the pinned esptool 5.4.0 and the discovered device. Verify its SHA-256 and exact size before any restore. A full factory restore and a return to the saved sparkDash snapshot were physically verified on 2026-09-05; see `../../docs/recovery.md`. A restore overwrites current settings. Never force protection overrides or change eFuses.
 
 ## Test
 
@@ -115,3 +115,11 @@ uv run tools/check_http_device.py --host MAC_LAN_IP --live-source http://dgx01.l
 ```
 
 This performs read-only GETs, freezes the five node responses in an ignored snapshot, and replays those exact values through the ESP32. It checks all 16 numeric/validity fields per node, roles, online states and ordering against an independent Python reference. Explicit source readback prevents comparisons against the old cache before switching servers. The saved server is restored in cleanup and the normal firmware must be reinstalled after validation.
+
+To verify default inactivity dimming, leave the device untouched and run:
+
+```sh
+uv run tools/check_device.py --seconds 150 --expect-dim --output logs/idle-check.json
+```
+
+STATUS reports commanded brightness, dim state and configured timeout. The check verifies dimming after that timeout and continued polling at 10%; it does not simulate the physical wake touch. Use a longer bounded run if you have configured a longer timeout (the helper supports up to 300 seconds).

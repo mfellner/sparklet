@@ -51,6 +51,7 @@ def main():
         sources[Path(name)] = PROJECT / name
     sources[Path('validation.md')] = ROOT / 'docs/sparkdash-validation.md'
     sources[Path('interaction.md')] = ROOT / 'docs/interaction.md'
+    sources[Path('recovery.md')] = ROOT / 'docs/recovery.md'
     for relative, source in sources.items():
         if relative.is_absolute() or '..' in relative.parts or not source.is_file():
             parser.error(f'invalid or missing build artifact: {relative}')

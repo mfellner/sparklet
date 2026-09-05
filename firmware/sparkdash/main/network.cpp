@@ -22,7 +22,7 @@ spark::Cache cache;
 View state;
 QueueHandle_t commands;
 std::atomic<bool> wifi_connected{false}, scan_done{true};
-std::atomic<uint32_t> network_stack_free{0}, ui_stack_free{0};
+std::atomic<uint32_t> network_stack_free{0}, ui_stack_free{0}, ui_brightness{0}, ui_dimmed{0};
 static spark::Connection saved, candidate;
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
 static char test_url[320]{};
