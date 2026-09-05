@@ -28,8 +28,12 @@ static lv_color_t color(uint32_t x) {
     return lv_color_hex(x);
 }
 void set(lv_obj_t *o, const char *s) {
-    if (o && strcmp(lv_label_get_text(o), s))
-        lv_label_set_text(o, s);
+    if (!o)
+        return;
+    char rendered[2048];
+    spark::display_text(rendered, sizeof rendered, s);
+    if (strcmp(lv_label_get_text(o), rendered))
+        lv_label_set_text(o, rendered);
 }
 lv_obj_t *label(lv_obj_t *parent, int x, int y, int w, const lv_font_t *font, uint32_t c = Text) {
     auto *l = lv_label_create(parent);
@@ -149,7 +153,8 @@ void build() {
             bars[i] = lv_bar_create(screen);
             lv_obj_set_pos(bars[i], 24, y + 27);
             lv_obj_set_size(bars[i], 432, 7);
-            lv_obj_set_style_bg_color(bars[i], color(0x343634), LV_PART_MAIN);
+            lv_obj_set_style_bg_color(bars[i], color(0x454743), LV_PART_MAIN);
+            lv_obj_set_style_bg_opa(bars[i], LV_OPA_COVER, LV_PART_MAIN);
             lv_obj_set_style_bg_color(bars[i], color(Amber), LV_PART_INDICATOR);
             lv_bar_set_range(bars[i], 0, 100);
         }

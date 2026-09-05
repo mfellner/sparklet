@@ -41,8 +41,7 @@ bool depth_ok(const char *s, size_t n) {
                 if (c == 'u' && i + 4 < n && !memcmp(s + i + 1, "0000", 4))
                     return false; // Embedded NUL would silently shorten C-string IDs.
                 escape = false;
-            }
-            else if (c == '\\')
+            } else if (c == '\\')
                 escape = true;
             else if (c == '"')
                 str = false;
@@ -122,6 +121,40 @@ int hex(char c) {
     return c >= 'a' && c <= 'f' ? c - 'a' + 10 : -1;
 }
 } // namespace
+void display_text(char *dst, size_t cap, const char *src) {
+    if (!cap)
+        return;
+    struct Replacement {
+        const char *from, *to;
+    };
+    static constexpr Replacement replacements[] = {
+        {"—", "-"}, {"–", "-"},  {"‑", "-"},  {"−", "-"},   {"‘", "'"},
+        {"’", "'"}, {"“", "\""}, {"”", "\""}, {"…", "..."}, {"\xc2\xa0", " "}};
+    size_t used = 0;
+    size_t remaining = strlen(src);
+    while (remaining) {
+        const char *value = src;
+        unsigned char lead = static_cast<unsigned char>(*src);
+        size_t consumed = lead < 0x80 ? 1 : lead < 0xe0 ? 2 : lead < 0xf0 ? 3 : 4;
+        size_t bytes = consumed;
+        for (const auto &replacement : replacements) {
+            size_t length = strlen(replacement.from);
+            if (remaining >= length && !memcmp(src, replacement.from, length)) {
+                value = replacement.to;
+                consumed = length;
+                bytes = strlen(value);
+                break;
+            }
+        }
+        if (consumed > remaining || bytes >= cap - used)
+            break;
+        memcpy(dst + used, value, bytes);
+        used += bytes;
+        src += consumed;
+        remaining -= consumed;
+    }
+    dst[used] = 0;
+}
 void copy_text(char *d, size_t cap, const char *s) {
     if (!cap)
         return;

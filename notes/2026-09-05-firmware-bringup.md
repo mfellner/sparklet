@@ -35,3 +35,11 @@ Source inspection found the cause: ESP-IDF's HTTP server creates an IPv6 listene
 ASan/UBSan host regression tests pass for both valid forms, other local addresses, native IPv6, truncated address structures, and a real dual-stack socket connection. The phone must reload the portal after the updated firmware is installed to verify the complete flow.
 
 The portal correction was flashed successfully and completed its bounded boot check: setup AP and DHCP started; free internal heap 53,856 bytes and largest block 38,912 bytes; no crash in capture. The current setup session is left running for the phone retry.
+
+## Successful setup and live UI
+
+The user's next photos show the phone portal reporting saved Wi-Fi and connected status, followed by live Overview cards for dgx01, dgx02, and gx10, with a total of five discovered nodes. Head/worker presentation and navigation positions 1/5, 2/5 and 5/5 are visible. The Details view displays GPU, CPU and storage values. This verifies successful phone provisioning and live data rendering; it does not yet verify every value against a simultaneous API capture or complete the soak gate.
+
+A rectangular missing-glyph marker appeared where the server's node name contains an em dash. The bundled Montserrat fonts include ASCII and the degree symbol but not that dash. Display-only punctuation normalization now renders common Unicode dashes and curly quotes using supported ASCII, leaving stored IDs/names and API addressing unchanged. UTF-8 boundary and punctuation regression tests pass under ASan/UBSan. Metric bar backgrounds now use an explicit opaque gray track so numeric zero remains visibly a valid empty bar.
+
+The punctuation/bar-track update built and flashed successfully. Boot logs confirm the saved connection survived flashing: the device associated with the configured access point and acquired an IPv4 address without reopening setup. The actual glyph replacement and bar contrast await a fresh physical look; compilation and host tests alone do not establish visual quality.

@@ -92,6 +92,17 @@ int main() {
     assert(decode_form("ssid=a+b&password=test%21", "ssid", text, sizeof text) &&
            !strcmp(text, "a b"));
     assert(!decode_form("ssid=%00", "ssid", text, sizeof text));
+    display_text(text, sizeof text, "dgx01 — Head ‘test’ – 65°C");
+    assert(!strcmp(text, "dgx01 - Head 'test' - 65°C"));
+    display_text(text, sizeof text, "“ready”…\xc2\xa0−1");
+    assert(!strcmp(text, "\"ready\"... -1"));
+    char small[5];
+    display_text(small, sizeof small, "ab€x");
+    assert(!strcmp(small, "ab"));
+    display_text(small, sizeof small, "a…x");
+    assert(!strcmp(small, "a..."));
+    display_text(small, 1, "test");
+    assert(!*small);
     Scheduler q;
     auto w = q.next(0, 2, 0);
     assert(w.kind == Scheduler::Kind::List);

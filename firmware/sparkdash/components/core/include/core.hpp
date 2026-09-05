@@ -41,6 +41,8 @@ struct Preferences {
     uint16_t dim_seconds = 120;
 };
 void copy_text(char *dst, size_t cap, const char *src);
+// Display-only punctuation substitutions; stored IDs and API values stay untouched.
+void display_text(char *dst, size_t cap, const char *src);
 bool parse_url(const char *, Url &, char *error, size_t cap);
 bool validate_connection(const Connection &, char *error, size_t cap);
 bool parse_list(const char *, size_t, Cache &, char *error, size_t cap);

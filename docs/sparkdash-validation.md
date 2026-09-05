@@ -12,8 +12,8 @@ Updated 2026-09-05. This is a development build, not a completed release accepta
 | Display / touch | User confirmed upright readable screen and Settings/Back touch; supplied photos. Full corner/swipe/dim testing pending. |
 | QR setup | Two-step Wi-Fi/URL QR build compiled, flashed and booted. iPhone photos confirm decoding and successful Wi-Fi join. |
 | Startup memory | 24-row draw stripe: 53,872 B free internal heap, 38,912 B largest block; network stack high-water mark 5,220 B. |
-| Phone provisioning | QR-assisted join succeeded. Portal incorrectly rejected IPv4-mapped IPv6 local addresses; corrected and host regression-tested. Phone form completion pending. |
-| Live five-node display | Not yet verified on the ESP32. Host parsing of observed API responses passed. |
+| Phone provisioning | QR-assisted join succeeded. Portal incorrectly rejected IPv4-mapped IPv6 local addresses; corrected and host regression-tested. Subsequent phone screenshot confirms saved Wi-Fi and successful connection. |
+| Live five-node display | Photos show five discovered nodes and live cards at positions 1, 2 and 5, plus Details. Simultaneous API/value comparison for every node remains pending. |
 | Recovery / performance | Physical Wi-Fi, DNS/mDNS, IDF HTTP faults and timing measurements pending. |
 | 24-hour soak | Not started; requires successful provisioning and live metrics first. |
 | Full release / restore gate | Pending. Do not treat a generated build bundle as passed release validation. |
