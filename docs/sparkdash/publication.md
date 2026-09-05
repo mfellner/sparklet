@@ -11,7 +11,9 @@ The user authorized publishing this project to a **new repository under mfellner
 - Assets and their provenance: [image notes](../assets/README.md).
 - Existing firmware branding and setup SSID remain sparkDash/SparkDash for compatibility with the implemented user flow.
 
-On 2026-09-05, GitHub CLI authentication selected mfellner and the repository lookup for `mfellner/sparklet` returned 404. Availability must be checked again at creation time. No new GitHub repository has been created and no push has been performed. The local repository currently has no remote.
+Published on 2026-09-05 at [mfellner/sparklet](https://github.com/mfellner/sparklet), with public visibility, main as the default branch, a cover illustration, three real-device photos and complete documentation. The [v1.0.0 release](https://github.com/mfellner/sparklet/releases/tag/v1.0.0) contains the verified ZIP and external checksum, built from source commit `07f10395f5173f8b37925464373e8f808d41ebe8`.
+
+The bundle passed ZIP integrity, internal/external checksum and generated flash-reference checks. All three firmware binaries match the independently reproduced build. Normal firmware excludes QA controls and is installed on the device; the final 60-second check returned nine live samples, five nodes and no failures. No further user interaction is required.
 
 ## Release readiness
 

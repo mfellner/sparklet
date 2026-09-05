@@ -55,6 +55,8 @@ This firmware targets that exact board. Its schematic-corrected display CS and t
 
 ## Get started
 
+Download the [v1.0.0 firmware bundle and checksums](https://github.com/mfellner/sparklet/releases/tag/v1.0.0), or follow the source build instructions below.
+
 With firmware installed:
 
 1. Scan the display's **join setup Wi-Fi** QR code and accept joining `SparkDash-XXXX`.

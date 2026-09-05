@@ -121,3 +121,5 @@ The user supplied four physical taps during the final capture: 5, 19, 4 and 4 ms
 The final bounded portal run passed all 20 checks, including wrong password against the saved SSID, unchanged saved configuration after failure, valid credential saving without a metrics response, and restored five-node polling. Minimum-ever heap was 33,856 B; minimum sampled largest block 23,552 B; spare portal stack 3,420 B and diagnostic stack 1,392 B. Credentials were used only in private device memory; raw logs remain ignored.
 
 Normal 1.0.0 previously passed a 60-second live run (zero errors, five nodes). Final installation restores this normal binary after QA; test controls are excluded. The 24-hour soak remains explicitly excluded.
+
+Final normal reinstall completed successfully using generated flash arguments and preserving NVS. The 60-second check returned 11 STATUS samples, nine live samples and no failures. The release bundle binaries match this installed reproducible build. Sparklet was published under mfellner/sparklet with the v1.0.0 bundle and checksum; raw validation logs and backups remain private.
