@@ -36,6 +36,8 @@ def main():
     subprocess.run(['idf.py', '-C', str(PROJECT), 'build'], check=True)
     if output('git', 'status', '--porcelain'):
         parser.error('build changed tracked source/dependencies; review and commit before packaging')
+    if 'CONFIG_SPARKDASH_TEST_COMMANDS=y' in (PROJECT / 'sdkconfig').read_text():
+        parser.error('test commands must be disabled in a release bundle')
     build = PROJECT / 'build'
     description = json.loads((build / 'project_description.json').read_text())
     flash = json.loads((build / 'flasher_args.json').read_text())

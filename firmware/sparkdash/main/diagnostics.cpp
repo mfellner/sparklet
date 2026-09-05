@@ -8,7 +8,11 @@ namespace app {
 // Deliberately small USB-only diagnostic protocol; never a shell or credential channel.
 // Enables repeatable soak navigation without pretending to test physical touch.
 static void diagnostics_task(void *) {
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+    static char line[352]{};
+#else
     char line[32]{};
+#endif
     size_t used = 0;
     bool overflow = false;
     for (;;) {
@@ -19,12 +23,23 @@ static void diagnostics_task(void *) {
             continue;
         if (c == '\n') {
             line[used] = 0;
-            if (!overflow && !strcmp(line, "NEXT"))
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+            if (!overflow && (!strncmp(line, "TEST_URL ", 9) || !strcmp(line, "TEST_RESET"))) {
+                Command command{};
+                command.type = CommandType::TestUrl;
+                spark::copy_text(command.connection.url, sizeof command.connection.url,
+                                 !strcmp(line, "TEST_RESET") ? "" : line + 9);
+                xQueueSend(commands, &command, 0);
+            } else if (!overflow && !strcmp(line, "TEST_RECONNECT"))
+                send(CommandType::TestReconnect);
+            else
+#endif
+                if (!overflow && !strcmp(line, "NEXT"))
                 send(CommandType::Next);
             else if (!overflow && !strcmp(line, "PREV"))
                 send(CommandType::Previous);
             else if (!overflow && !strcmp(line, "STATUS")) {
-                View v;
+                static View v;
                 snapshot(v);
                 ESP_LOGI("diagnostics",
                          "uptime_ms=%llu nodes=%u selected=%u connected=%u requests=%u errors=%u "
@@ -35,6 +50,26 @@ static void diagnostics_task(void *) {
                          unsigned(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL)),
                          unsigned(uxTaskGetStackHighWaterMark(nullptr)),
                          unsigned(network_stack_free.load()), unsigned(ui_stack_free.load()));
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+                char id[193], error[385];
+                spark::percent_encode(v.node.id, id, sizeof id);
+                spark::percent_encode(v.status, error, sizeof error);
+                ESP_LOGI("qa", "node=%s received=%u received_ms=%llu online=%u role=%u status=%s",
+                         id, unsigned(v.node.received), (unsigned long long)v.node.received_ms,
+                         unsigned(v.node.online), unsigned(v.node.role), error);
+                const spark::Value values[] = {
+                    v.node.used,     v.node.total,      v.node.available,   v.node.temperature,
+                    v.node.usage,    v.node.power,      v.node.power_limit, v.node.cpu_usage,
+                    v.node.cpu_temp, v.node.disk_used,  v.node.disk_total,  v.node.rx,
+                    v.node.tx,       v.node.generation, v.node.prefill};
+                const char *keys[] = {"used",     "total",      "available",   "temperature",
+                                      "usage",    "power",      "power_limit", "cpu_usage",
+                                      "cpu_temp", "disk_used",  "disk_total",  "rx",
+                                      "tx",       "generation", "prefill"};
+                for (unsigned i = 0; i < sizeof(values) / sizeof(values[0]); ++i)
+                    ESP_LOGI("qa_value", "%s=%.6f valid=%u", keys[i], values[i].value,
+                             unsigned(values[i].valid));
+#endif
             }
             used = 0;
             overflow = false;

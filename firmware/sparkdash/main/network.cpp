@@ -24,6 +24,9 @@ QueueHandle_t commands;
 std::atomic<bool> wifi_connected{false}, scan_done{true};
 std::atomic<uint32_t> network_stack_free{0}, ui_stack_free{0};
 static spark::Connection saved, candidate;
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+static char test_url[320]{};
+#endif
 static bool has_saved = false, testing = false, setup_mode = false, nvs_ready = false;
 static uint64_t test_deadline = 0, ap_stop_at = 0, reconnect_at = 0;
 static unsigned wifi_failures = 0;
@@ -384,6 +387,36 @@ static void worker(void *) {
                     status(error);
                 break;
             }
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+            case CommandType::TestUrl: {
+                if (setup_mode)
+                    break;
+                spark::Url parsed;
+                char error[128];
+                if (*command.connection.url &&
+                    !spark::parse_url(command.connection.url, parsed, error, sizeof error))
+                    break;
+                spark::copy_text(test_url, sizeof test_url, command.connection.url);
+                resolved[0] = 0;
+                schedule.reconnect();
+                {
+                    std::lock_guard<std::mutex> guard(mutex);
+                    cache = spark::Cache{};
+                    state.listed = false;
+                    spark::copy_text(state.url, sizeof state.url, *test_url ? test_url : saved.url);
+                }
+                status(*test_url ? "USB test server; saved connection unchanged"
+                                 : "Loading node list");
+                break;
+            }
+            case CommandType::TestReconnect:
+                if (!setup_mode) {
+                    esp_wifi_disconnect();
+                    wifi_connected = false;
+                    reconnect_at = now_ms() + 1000;
+                }
+                break;
+#endif
             case CommandType::Scan:
                 if (setup_mode && !testing && scan_done) {
                     scan_done = false;
@@ -442,7 +475,12 @@ static void worker(void *) {
             if (work.kind != spark::Scheduler::Kind::None) {
                 spark::Url url;
                 char err[128]{}, id[65]{}, path[256];
-                bool valid = spark::parse_url(saved.url, url, err, sizeof err);
+                const char *request_url = saved.url;
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+                if (*test_url)
+                    request_url = test_url;
+#endif
+                bool valid = spark::parse_url(request_url, url, err, sizeof err);
                 if (work.kind == spark::Scheduler::Kind::List)
                     spark::copy_text(path, sizeof path, "/api/sparks");
                 else {

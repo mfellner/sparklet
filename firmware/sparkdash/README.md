@@ -87,3 +87,21 @@ uv run tools/check_device.py --seconds 60 --output logs/live-check.json
 ```
 
 This verifies continued five-node polling, request-error stability, sampled internal heap/largest block, and UI/network/diagnostics task stack margins. It does not simulate touch or prove worst-case response memory. The JSON and adjacent raw log stay ignored.
+
+## Controlled ESP32 HTTP validation
+
+`tools/check_http_device.py` runs the real device against a synthetic server on this Mac. It requires a separate validation build with `CONFIG_SPARKDASH_TEST_COMMANDS=y` in an ignored `sdkconfig.qa`; the normal default is disabled. Activate the pinned SDK, copy the normal `sdkconfig` to `sdkconfig.qa`, enable that single test option, then use a separate build directory:
+
+```sh
+idf.py -C firmware/sparkdash -B firmware/sparkdash/build-qa -D SDKCONFIG="$PWD/firmware/sparkdash/sdkconfig.qa" build
+```
+
+Flash that project's generated arguments to the discovered board, then run from the root with this Mac's LAN IPv4:
+
+```sh
+uv run tools/check_http_device.py --host MAC_LAN_IP --output logs/http-device.json
+```
+
+Test commands exist only in that build: `TEST_URL http://...` selects a volatile test server, `TEST_RESET` restores the saved URL, and `TEST_RECONNECT` disconnects/reconnects only this display's Wi-Fi. No command changes saved credentials or sends control requests to a DGX. The runner hosts a synthetic HTTP server on port 5556, checks normalized values and cached-state preservation, then restores the saved URL in its cleanup path. It records ignored JSON/raw evidence. Reinstall the normal build afterward. The release packager rejects a configuration with test commands enabled.
+
+These diagnostics test network-worker/cache behavior; they do not claim to simulate physical touch or prove touch-to-photon latency.

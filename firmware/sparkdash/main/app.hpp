@@ -14,7 +14,11 @@ enum class CommandType {
     Forget,
     SavePreferences,
     Configure,
-    Scan
+    Scan,
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+    TestUrl,
+    TestReconnect,
+#endif
 };
 struct Command {
     CommandType type;
