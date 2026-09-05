@@ -13,7 +13,7 @@ The [complete documentation](../../docs/sparkdash/README.md) covers [daily use](
 
 Both codes are generated locally. No credentials go to an external QR service. Manual setup details remain visible. The setup password changes between sessions/reboots; if joining fails, forget the phone's saved SparkDash network and scan the current code again. QR scanning does not itself repair a radio/association failure.
 
-Swipe left/right or tap arrows to select a node. Details scroll vertically. Settings controls brightness, dimming, and connection reconfiguration. The first touch after dimming wakes the screen without activating a control. Connection setup disables dimming so the QR remains readable.
+Swipe left/right or tap arrows to select a node. Details scroll vertically. Settings controls brightness, dimming, automatic rotation, and connection reconfiguration. Auto-rotate defaults on; Save display persists the switch, and disabling it restores upright. The first touch after dimming wakes the screen without activating a control. Connection setup disables dimming so the QR remains readable.
 
 The server is unchanged. This client uses only `/api/sparks` and `/api/sparks/{id}/metrics`, over HTTP. HTTPS, enterprise/open Wi-Fi, remote actions, history and OTA are not supported. “Received” measures response receipt age, not collector sample age.
 
@@ -29,7 +29,7 @@ idf.py build
 
 The build enables `CONFIG_APP_REPRODUCIBLE_BUILD` to remove time/date/path variability; application, bootloader and partition binaries were byte-identical across separate build directories. Keep `dependencies.lock` committed; dependency changes require separate review. `sdkconfig.defaults` supplies clean-build settings; generated `sdkconfig`, `managed_components` and `build` are ignored. Source provenance and the corrected schematic wiring are in `PROVENANCE.md` and `../../notes/2026-09-05-firmware-bringup.md`.
 
-Rendering uses one 480 × 24 RGB565 buffer, one software draw unit, partial updates, and a bounded 64 KiB LVGL heap. The smaller stripe is the planned memory fallback after the initial 48-row build missed the memory gates with diagnostics enabled.
+Rendering uses a 480 × 12 RGB565 draw buffer and an equally sized DMA rotation buffer (23,040 bytes total), one software draw unit, partial updates, and a bounded 64 KiB LVGL heap. This preserves the former 24-row buffer budget without a full-screen framebuffer.
 
 ## Flash and recover
 

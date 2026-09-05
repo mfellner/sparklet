@@ -153,7 +153,7 @@ Setup switches to AP+station mode, creates a random 12-character WPA2 setup pass
 
 All handlers check the socket's actual local destination against the AP address. Both IPv4 and IPv4-mapped IPv6 sockets are supported. The Host header is not used as proof of the interface. Configuration writes require the random session token; saved Wi-Fi passwords are never returned. The server/AP close after the brief success window, leaving no normal-LAN administration endpoint.
 
-NVS namespace `sparkdash` stores a version-1 `connection` blob and separate version-1 `preferences` blob. Record length, version and string termination are checked. Invalid connection bytes are cleared only from the RAM copy; firmware does not automatically erase all NVS. The explicit Forget flow handles reset, and write/commit failures report errors. Preferences are written when saved, not on each gesture or slider movement.
+NVS namespace `sparkdash` stores a version-1 `connection` blob and separate explicitly encoded version-2 `preferences` blob (version 1 remains readable). Record length, version and string termination are checked. Invalid connection bytes are cleared only from the RAM copy; firmware does not automatically erase all NVS. The explicit Forget flow handles reset, and write/commit failures report errors. Preferences are written when saved, not on each gesture or slider movement.
 
 HTTP metric transport and the local setup page are not TLS-encrypted. V1 assumes a trusted local network. Flash encryption is not enabled: physical flash dumps may contain credentials and must remain private. The application performs no DGX control actions.
 
@@ -163,8 +163,26 @@ The exact schematic and active vendor integration use I2C SCL7/SDA8, QSPI clock0
 
 The board wrapper retains the vendor initialization sequence, RGB565 at initial 40 MHz QSPI, ALDO3 reset, touch transform, even-coordinate update alignment and brightness command `0x51`. SH8601/CST9217 component labels are intentional despite CO5300/CST9220 advertised names. Only display-related PMIC registers are modified.
 
-Rendering uses one **480 × 24 × 2 = 23,040-byte** draw stripe, partial rendering, one software draw unit, a 33 ms refresh period, a 20 KiB LVGL task stack and a 64 KiB LVGL allocation budget. Graphics allocation precedes Wi-Fi startup. The 24-row stripe was the planned fallback after the original 48-row allocation missed memory gates. There is no full-screen framebuffer or PSRAM assumption. QR storage is a small one-bit canvas inside LVGL's bounded heap.
+Rendering uses one **480 × 12 × 2 = 11,520-byte** draw stripe and one equally sized DMA rotation buffer, partial rendering, one software draw unit, a 33 ms refresh period, a 20 KiB LVGL task stack and a 64 KiB LVGL allocation budget. Graphics allocation precedes Wi-Fi startup. The two 12-row buffers preserve the former 24-row buffer budget, which followed the original 48-row allocation missing memory gates. There is no full-screen framebuffer or PSRAM assumption. QR storage is a small one-bit canvas inside LVGL's bounded heap.
 
 Other application task stacks are 8 KiB for the network worker and 5 KiB for diagnostics; the setup HTTP server uses 8 KiB. Static JSON reception/parsing storage is shared across requests. Memory acceptance still depends on observed peak/largest-block/stack evidence; allocation budgets alone do not prove it.
 
 The flash table has 64 KiB NVS at `0x9000`, 4 KiB PHY data at `0x19000`, and a 6 MiB factory application at `0x20000`. The rest of the 16 MiB flash is unallocated. Assets are compiled into the app. No OTA slots or filesystem exist; future OTA support requires an explicit USB partition migration.
+
+## Orientation and preference storage
+
+The UI's 50 ms LVGL timer samples the board accelerometer and passes screen-relative
+acceleration in g to the shared core orientation detector. The detector requires
+300 ms of consistent dominant-axis readings, rejects flat/ambiguous/invalid motion,
+and resets settling after gaps over 150 ms. Display and input transforms use the
+same clockwise quarter-turn enum, with 480×480 logical coordinates. Rotation occurs
+only outside active touch gestures under the LVGL lock and invalidates the screen
+without rebuilding widgets. No orientation change counts as touch activity.
+
+Preferences are encoded explicitly into eight bytes: little-endian version at
+0–3, brightness at 4, auto-rotate (0 or 1) at 5, and little-endian dim seconds at
+6–7. Version 2 is written; version 1 is decoded using its original ESP32 layout,
+ignoring padding byte 5 and enabling auto-rotate. The network task commits NVS
+before publishing preferences and an acknowledgement to the UI. Settings waits
+for that acknowledgement, retaining editable values on failure. Connection storage
+is unchanged.

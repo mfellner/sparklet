@@ -36,9 +36,35 @@ struct Connection {
     char ssid[33]{}, password[65]{}, url[320] = "http://dgx01.local:5555";
 };
 struct Preferences {
-    uint32_t version = 1;
+    uint32_t version = 2;
     uint8_t brightness = 60;
     uint16_t dim_seconds = 120;
+    bool auto_rotate = true;
+};
+// Explicit 8-byte little-endian record; v1 byte 5 was padding, never a boolean.
+using PreferencesRecord = std::array<uint8_t, 8>;
+PreferencesRecord encode_preferences(const Preferences &);
+bool decode_preferences(const uint8_t *, size_t, Preferences &);
+enum class Orientation : uint8_t { Upright, Clockwise90, UpsideDown, Clockwise270 };
+struct Point {
+    int x, y;
+};
+struct Rect {
+    int x1, y1, x2, y2;
+}; // exclusive upper bounds
+struct Acceleration {
+    float x, y, z;
+}; // g; x right, y down in upright display coordinates
+Point rotate_point(Point, Orientation, int side = 480);
+Point unrotate_point(Point, Orientation, int side = 480);
+Rect rotate_rect(Rect, Orientation, int side = 480);
+// Non-overlapping tightly packed buffers; preserves both bytes of every RGB565 pixel.
+void rotate_pixels(const uint16_t *, uint16_t *, int width, int height, Orientation);
+struct OrientationDetector {
+    Orientation current = Orientation::Upright, candidate = Orientation::Upright;
+    uint64_t since = 0, last_sample = 0;
+    bool pending = false;
+    Orientation update(Acceleration, bool valid, uint64_t now);
 };
 void copy_text(char *dst, size_t cap, const char *src);
 // Display-only punctuation substitutions; stored IDs and API values stay untouched.

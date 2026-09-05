@@ -93,3 +93,23 @@ The idle dim command and continued polling were measured. The user confirmed phy
 **Forget connection** opens an explicit confirmation screen. **Keep settings** cancels the operation. **Forget** removes the saved connection and returns to setup; ordinary temporary Wi-Fi/server outages never erase it. A successful firmware update normally preserves the saved configuration. Full-flash restoration replaces it with the contents of the selected backup.
 
 For connection and display problems, use the [troubleshooting guide](operations.md#troubleshooting).
+
+## Automatic rotation
+
+**Settings → Auto-rotate → Save display** enables or disables automatic screen
+rotation. It is enabled by default, including after upgrading from the original
+firmware; existing brightness and dim delay are preserved. **Back** discards an
+unsaved toggle. Disabling and saving returns the screen to its original upright
+orientation. The preference survives reboot.
+
+The whole interface and its touch controls follow all four orientations. Hold the
+device steadily on an edge for about half a second. It retains its orientation
+when flat, held diagonally, or shaken, and waits for a touch gesture to finish
+before turning. Rotation preserves the current page, selection, scroll position,
+and unsaved settings, and does not wake a dimmed screen.
+
+If Settings shows **Auto-rotate unavailable**, the sensor or rotation buffer is
+unavailable. The interface continues at its last angle (upright at startup), and
+you can still disable auto-rotate to return upright. Sensor communication failures
+are retried automatically. A failed settings save leaves the previous saved
+preference active and displays a retry message.

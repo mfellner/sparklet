@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "board.hpp"
 #include "driver/usb_serial_jtag.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
@@ -24,7 +25,11 @@ static void diagnostics_task(void *) {
         if (c == '\n') {
             line[used] = 0;
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
-            if (!overflow && !strcmp(line, "TEST_NAV")) {
+            if (!overflow && (!strcmp(line, "TEST_PREFS_ON") || !strcmp(line, "TEST_PREFS_OFF"))) {
+                preferences_self_test(!strcmp(line, "TEST_PREFS_ON"));
+            } else if (!overflow && !strcmp(line, "TEST_ROTATION")) {
+                rotation_self_test();
+            } else if (!overflow && !strcmp(line, "TEST_NAV")) {
                 navigation_self_test();
             } else if (!overflow && !strcmp(line, "TEST_PORTAL")) {
                 portal_self_test();
@@ -49,7 +54,8 @@ static void diagnostics_task(void *) {
                 ESP_LOGI("diagnostics",
                          "uptime_ms=%llu nodes=%u selected=%u connected=%u requests=%u errors=%u "
                          "heap=%u largest=%u stack=%u net_stack=%u ui_stack=%u brightness=%u "
-                         "dimmed=%u dim_after=%u portal_stack=%u",
+                         "dimmed=%u dim_after=%u portal_stack=%u auto_rotate=%u orientation=%u "
+                         "imu_ok=%u",
                          (unsigned long long)now_ms(), unsigned(v.count), unsigned(v.selected),
                          unsigned(v.connected), unsigned(v.requests), unsigned(v.errors),
                          unsigned(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
@@ -57,7 +63,9 @@ static void diagnostics_task(void *) {
                          unsigned(uxTaskGetStackHighWaterMark(nullptr)),
                          unsigned(network_stack_free.load()), unsigned(ui_stack_free.load()),
                          unsigned(ui_brightness.load()), unsigned(ui_dimmed.load()),
-                         unsigned(v.preferences.dim_seconds), unsigned(portal_stack_free.load()));
+                         unsigned(v.preferences.dim_seconds), unsigned(portal_stack_free.load()),
+                         unsigned(v.preferences.auto_rotate), unsigned(board::orientation()) * 90,
+                         unsigned(board::rotation_available()));
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
                 char id[193], error[385];
                 spark::percent_encode(v.node.id, id, sizeof id);

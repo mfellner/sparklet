@@ -35,6 +35,7 @@ The missing-glyph rectangle visible in these photos was subsequently addressed w
 - **Read the useful numbers:** GPU allocation, available memory, utilization, temperature and power; CPU, root storage and network rates in Details.
 - **Understand node roles:** show the first available LLM backend on head/standalone nodes and the head relationship on workers.
 - **Set up with your phone:** scan a Wi-Fi QR, scan the setup-page QR, then enter your local network and server details.
+- **Turn the screen:** automatic rotation through all four orientations, with aligned touch controls and a saved Settings toggle (source build; not included in the v1.0.0 bundle).
 - **Keep running independently:** saved settings, automatic reconnect, cached data during outages and adjustable inactivity dimming.
 
 Sparklet is read-only. It does not shut down, wake, update or otherwise control DGX nodes. “Received Ns ago” describes HTTP receipt time, not collector sample age. Missing values and valid zero are handled separately.
@@ -47,7 +48,7 @@ Sparklet is read-only. It does not shut down, wake, update or otherwise control 
 | Display | 480 × 480 AMOLED, capacitive touch |
 | Network | Personal 2.4 GHz Wi-Fi |
 | Framework | ESP-IDF **5.5.3**, target `esp32c6` |
-| UI | LVGL 9; partial rendering with one 23,040-byte draw stripe |
+| UI | LVGL 9; partial rendering with 11,520-byte draw and rotation buffers (23,040 bytes total) |
 | Power | Primarily USB |
 | Server | Existing sparkDash HTTP API; default `http://dgx01.local:5555` |
 
@@ -97,7 +98,7 @@ Start with the [complete documentation index](docs/sparkdash/README.md).
 
 | Guide | Covers |
 | --- | --- |
-| [User guide](docs/sparkdash/user-guide.md) | QR setup, controls, metric interpretation, Settings and dimming |
+| [User guide](docs/sparkdash/user-guide.md) | QR setup, controls, metric interpretation, Settings, rotation and dimming |
 | [Architecture and API](docs/sparkdash/architecture.md) | Task ownership, bounded parsing, data mappings, polling and NVS |
 | [Development](docs/sparkdash/development.md) | Pinned SDK, reproducible inputs and normal/QA builds |
 | [Testing](docs/sparkdash/testing.md) | Host tests, real ESP32 failure tests, live API comparison and physical acceptance |

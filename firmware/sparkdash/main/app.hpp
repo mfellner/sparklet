@@ -32,6 +32,8 @@ struct View {
     char status[128] = "Starting", ssid[33]{}, ip[20]{}, url[320]{}, ap_ssid[33]{},
          ap_password[17]{};
     spark::Preferences preferences{};
+    uint32_t preferences_save_result = 0;
+    bool preferences_save_ok = false;
     int rssi = 0;
     uint32_t revision = 0, requests = 0, errors = 0;
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
@@ -50,6 +52,8 @@ void portal_self_test();
 char *portal_test_buffer();
 void portal_test_buffer_release();
 void navigation_self_test();
+void rotation_self_test();
+void preferences_self_test(bool enabled);
 #endif
 uint64_t now_ms();
 void snapshot(View &);

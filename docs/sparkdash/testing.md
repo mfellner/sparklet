@@ -159,3 +159,45 @@ uv run tools/check_ui_device.py --seconds 150 --output logs/ui-timing-new.json
 The portal validator calls the actual device HTTP server through its own setup address, exercises asynchronous scan and invalid/maximum submissions, waits for a deliberately nonexistent SSID to fail, verifies saved NVS bytes are unchanged, cancels and verifies live reconnection. It borrows the idle metrics response buffer while a test lease suspends polling; cancellation cannot cause simultaneous buffer use. The test adds a client within the firmware, so its measured pressure is conservative relative to a phone client. It does not simulate phone radio authentication or claim to do so. Raw data and credentials are not emitted by the test protocol.
 
 The UI validator automatically exercises 20 next/previous selections and requires each to reach completed SPI transfer within 250 ms. During the remaining window, physically tap the navigation or Settings/Back buttons. It requires actual button samples; `--touch-only` captures these without repeating navigation. The touch gate adds one configured 33 ms input polling period to sampled-input-to-panel-transfer duration and compares with 150 ms. A queue-drain operation completes pending SPI writes without changing any panel register. Optical scan-out is not instrumented; user confirmation of visible operation remains separate. Missing physical samples are a failed/incomplete capture, never a pass.
+
+## Automatic rotation
+
+`rotation_tests` runs with the host suites above. It covers four-angle RGB565
+transforms, inverse touch coordinates, even panel rectangles, settled versus
+ambiguous acceleration, sample interruptions, and v1/v2 preference records.
+
+With the isolated QA firmware installed, run:
+
+```sh
+uv run tools/check_rotation_device.py --output logs/rotation-timing-new.json
+```
+
+This USB-only test forces each angle and measures 20 cached navigation renders per
+angle, requiring all 80 completed transfers within 250 ms. It retains the saved
+auto-rotate preference and restores the starting angle afterward. It does not
+simulate accelerometer motion or physical touch. Opening USB can reboot the device.
+The earlier navigation test now waits for the *next* accepted selection sequence,
+so a previous render cannot accidentally satisfy the current sample.
+
+Physically check both sides and upside down, Settings/Back and arrows, horizontal
+swipes, Details scrolling, brightness/dim sliders, setup QR codes, and first-touch
+wake. Check Back discards an unsaved switch, Save applies it, disabling restores
+upright, and both setting values persist across reboot. Hold a finger down while
+turning: rotation must wait until release. Leave the device flat/diagonal to check
+it holds its previous orientation. Reinstall normal firmware afterward; the
+`TEST_ROTATION` command and raw accelerometer logs must not ship in that image.
+
+The QA Settings test uses the actual on-device widgets and Save callback. It checks
+unsaved controls survive rotation, Back leaves the committed preference unchanged,
+and Save publishes a successful acknowledgement without changing brightness or dim
+delay. It intentionally changes the saved toggle. Check both values across reboot:
+
+```sh
+uv run tools/check_preferences_device.py --save off --output logs/preferences-off-new.json
+uv run tools/check_preferences_device.py --expect-boot off --save on --output logs/preferences-on-new.json
+```
+
+The second run requires an observed boot and saved-off readback before saving on.
+After flashing normal firmware, verify STATUS reports `auto_rotate=1`. This is
+firmware/UI-event and NVS validation, not a substitute for physical touch testing.
+`TEST_PREFS_ON` and `TEST_PREFS_OFF` exist only in QA builds.

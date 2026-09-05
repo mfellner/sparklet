@@ -13,7 +13,8 @@ enum class Page { Overview, Details, Settings, Setup, SetupLink, Forget };
 Page page = Page::Overview, built = Page::Forget;
 View view;
 lv_obj_t *title, *subtitle, *status_label, *role, *position, *model, *throughput, *power,
-    *available, *message, *details, *brightness_slider, *dim_slider, *prefs_label;
+    *available, *message, *details, *brightness_slider, *dim_slider, *prefs_label, *rotate_switch,
+    *rotate_label;
 lv_obj_t *values[3], *bars[3], *setup_qr;
 char qr_payload[160]{};
 bool setup_page() {
@@ -23,7 +24,11 @@ uint64_t last_touch = 0;
 bool dimmed = false, was_down = false, consume_touch = false;
 int start_x = 0, start_y = 0;
 unsigned last_brightness = 0;
+spark::OrientationDetector orientation_detector;
+bool saving_preferences = false, preferences_error = false;
+uint32_t save_result_before = 0;
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+bool rotation_testing = false;
 std::atomic<uint32_t> navigation_rendered{0}, navigation_ms{0};
 uint32_t touch_started = 0;
 bool rendered_frame = false;
@@ -73,6 +78,8 @@ lv_obj_t *label(lv_obj_t *parent, int x, int y, int w, const lv_font_t *font, ui
     return l;
 }
 void on_action(lv_event_t *e) {
+    if (saving_preferences)
+        return;
     auto action = static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(e)));
     switch (action) {
     case 1:
@@ -113,10 +120,18 @@ void on_action(lv_event_t *e) {
     case 10: {
         Command c{};
         c.type = CommandType::SavePreferences;
+        c.preferences = view.preferences;
+        c.preferences.auto_rotate = lv_obj_has_state(rotate_switch, LV_STATE_CHECKED);
         c.preferences.brightness = lv_slider_get_value(brightness_slider);
         c.preferences.dim_seconds = lv_slider_get_value(dim_slider);
-        xQueueSend(commands, &c, 0);
-        page = view.setup ? Page::Setup : Page::Overview;
+        save_result_before = view.preferences_save_result;
+        saving_preferences = xQueueSend(commands, &c, 0) == pdTRUE;
+        preferences_error = !saving_preferences;
+        if (saving_preferences) {
+            lv_obj_add_state(brightness_slider, LV_STATE_DISABLED);
+            lv_obj_add_state(dim_slider, LV_STATE_DISABLED);
+            lv_obj_add_state(rotate_switch, LV_STATE_DISABLED);
+        }
         break;
     }
     }
@@ -154,6 +169,8 @@ void build() {
     lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
     title = subtitle = status_label = role = position = model = throughput = power = available =
         message = details = brightness_slider = dim_slider = prefs_label = nullptr;
+    rotate_switch = rotate_label = nullptr;
+    preferences_error = false;
     setup_qr = nullptr;
     qr_payload[0] = 0;
     auto *brand = label(screen, 24, 24, 260, &lv_font_montserrat_20, Amber);
@@ -213,21 +230,28 @@ void build() {
     } else if (page == Page::Settings) {
         message = label(screen, 24, 72, 432, &lv_font_montserrat_16, Muted);
         lv_label_set_long_mode(message, LV_LABEL_LONG_WRAP);
-        lv_obj_set_height(message, 112);
-        prefs_label = label(screen, 24, 188, 432, &lv_font_montserrat_16);
+        lv_obj_set_height(message, 96);
+        prefs_label = label(screen, 24, 172, 432, &lv_font_montserrat_16);
         brightness_slider = lv_slider_create(screen);
-        lv_obj_set_pos(brightness_slider, 40, 230);
+        lv_obj_set_pos(brightness_slider, 40, 210);
         lv_obj_set_size(brightness_slider, 400, 14);
         lv_slider_set_range(brightness_slider, 10, 100);
         lv_slider_set_value(brightness_slider, view.preferences.brightness, LV_ANIM_OFF);
         dim_slider = lv_slider_create(screen);
-        lv_obj_set_pos(dim_slider, 40, 282);
+        lv_obj_set_pos(dim_slider, 40, 258);
         lv_obj_set_size(dim_slider, 400, 14);
         lv_slider_set_range(dim_slider, 30, 600);
         lv_slider_set_value(dim_slider, view.preferences.dim_seconds, LV_ANIM_OFF);
         lv_obj_add_event_cb(brightness_slider, slider_change, LV_EVENT_VALUE_CHANGED, nullptr);
         lv_obj_add_event_cb(dim_slider, slider_change, LV_EVENT_VALUE_CHANGED, nullptr);
         slider_change(nullptr);
+        rotate_label = label(screen, 24, 294, 360, &lv_font_montserrat_16);
+        set(rotate_label, "Auto-rotate");
+        rotate_switch = lv_switch_create(screen);
+        lv_obj_set_pos(rotate_switch, 400, 290);
+        lv_obj_set_size(rotate_switch, 56, 30);
+        if (view.preferences.auto_rotate)
+            lv_obj_add_state(rotate_switch, LV_STATE_CHECKED);
         button(screen, "Save display", 24, 330, 200, 10);
         button(screen, "Reconfigure", 236, 330, 220, 6);
         button(screen, "Forget connection", 24, 386, 432, 8);
@@ -270,6 +294,17 @@ void pair(char *out, size_t n, spark::Value a, spark::Value b, bool memory) {
 }
 void tick(lv_timer_t *) {
     snapshot(view);
+    if (saving_preferences && view.preferences_save_result != save_result_before) {
+        saving_preferences = false;
+        preferences_error = !view.preferences_save_ok;
+        if (!preferences_error)
+            page = view.setup ? Page::Setup : Page::Overview;
+        else if (brightness_slider) {
+            lv_obj_remove_state(brightness_slider, LV_STATE_DISABLED);
+            lv_obj_remove_state(dim_slider, LV_STATE_DISABLED);
+            lv_obj_remove_state(rotate_switch, LV_STATE_DISABLED);
+        }
+    }
     if (view.setup && page == Page::Overview)
         page = Page::Setup;
     else if (!view.setup && setup_page())
@@ -294,6 +329,10 @@ void tick(lv_timer_t *) {
                  (unsigned long long)((now_ms() - n.received_ms) / 1000));
     else
         spark::copy_text(b, sizeof b, "Waiting for metrics");
+    if (page == Page::Settings && saving_preferences)
+        spark::copy_text(b, sizeof b, "Saving display preferences...");
+    else if (page == Page::Settings && preferences_error)
+        spark::copy_text(b, sizeof b, "Could not save display preferences; retry");
     set(status_label, b);
     if (page == Page::Overview) {
         set(title, view.count ? n.id : view.listed ? "No nodes" : "Connecting");
@@ -378,6 +417,7 @@ void tick(lv_timer_t *) {
         }
         set(details, b);
     } else if (page == Page::Settings) {
+        set(rotate_label, board::rotation_available() ? "Auto-rotate" : "Auto-rotate unavailable");
         snprintf(b, sizeof b,
                  "%s\nWi-Fi: %s (%d dBm)\nIP: %s | Firmware %s\nHeap: %u KiB | Errors: %u%s%s",
                  view.url, view.ssid, view.rssi, view.ip, esp_app_get_description()->version,
@@ -466,6 +506,33 @@ bool filter(bool down, int x, int y) {
     }
     return consumed;
 }
+void rotation_tick(lv_timer_t *) {
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+    if (rotation_testing)
+        return;
+#endif
+    spark::Acceleration a{};
+    bool valid = board::acceleration(a);
+    // Use committed preferences; unsaved switches must not affect the screen.
+    bool enabled;
+    {
+        std::lock_guard<std::mutex> guard(mutex);
+        enabled = state.preferences.auto_rotate;
+    }
+    if (!enabled) {
+        orientation_detector = {};
+        if (!was_down)
+            board::set_orientation(spark::Orientation::Upright);
+        return;
+    }
+    if (was_down) {
+        // Start a fresh settling window after release; never rotate on a stale candidate.
+        orientation_detector.pending = false;
+        return;
+    }
+    auto next = orientation_detector.update(a, valid, now_ms());
+    board::set_orientation(next);
+}
 } // namespace
 void ui_start() {
     if (board::lock()) {
@@ -480,12 +547,124 @@ void ui_start() {
         lv_display_add_event_cb(lv_display_get_default(), timing_event, LV_EVENT_REFR_READY,
                                 nullptr);
 #endif
+        lv_timer_create(rotation_tick, 50, nullptr);
         lv_timer_create(tick, 100, nullptr);
         tick(nullptr);
         board::unlock();
     }
 }
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+namespace {
+bool test_click_button(const char *text) {
+    auto *screen = lv_screen_active();
+    for (uint32_t i = 0; i < lv_obj_get_child_count(screen); ++i) {
+        auto *child = lv_obj_get_child(screen, i);
+        if (!lv_obj_check_type(child, &lv_button_class))
+            continue;
+        auto *label = lv_obj_get_child(child, 0);
+        if (label && !strcmp(lv_label_get_text(label), text)) {
+            lv_obj_send_event(child, LV_EVENT_CLICKED, nullptr);
+            return true;
+        }
+    }
+    return false;
+}
+struct PreferencesTest {
+    spark::Preferences before;
+    uint32_t result_before = 0;
+    bool enabled = false;
+    std::atomic<int> stage{-1};
+} preferences_test;
+void preferences_test_ui(void *) {
+    const bool enabled = preferences_test.enabled;
+    snapshot(view);
+    auto &before = preferences_test.before;
+    before = view.preferences;
+    auto &result_before = preferences_test.result_before;
+    result_before = view.preferences_save_result;
+    auto original_angle = board::orientation();
+    auto activity_before = last_touch;
+    rotation_testing = true;
+    page = Page::Settings;
+    build();
+    if (before.auto_rotate)
+        lv_obj_remove_state(rotate_switch, LV_STATE_CHECKED);
+    else
+        lv_obj_add_state(rotate_switch, LV_STATE_CHECKED);
+    auto *original_switch = rotate_switch;
+    bool unsaved = lv_obj_has_state(rotate_switch, LV_STATE_CHECKED);
+    bool ok = board::set_orientation(spark::Orientation::Clockwise90);
+    ok &= rotate_switch == original_switch && page == Page::Settings &&
+          lv_obj_has_state(rotate_switch, LV_STATE_CHECKED) == unsaved &&
+          lv_slider_get_value(brightness_slider) == before.brightness &&
+          lv_slider_get_value(dim_slider) == before.dim_seconds && last_touch == activity_before;
+    board::set_orientation(original_angle);
+    ok &= test_click_button("Back");
+    tick(nullptr);
+    ok &= page != Page::Settings && view.preferences.auto_rotate == before.auto_rotate &&
+          view.preferences_save_result == result_before;
+    page = Page::Settings;
+    build();
+    if (enabled)
+        lv_obj_add_state(rotate_switch, LV_STATE_CHECKED);
+    else
+        lv_obj_remove_state(rotate_switch, LV_STATE_CHECKED);
+    ok &= test_click_button("Save display") && saving_preferences;
+    rotation_testing = false;
+    preferences_test.stage = ok ? 1 : 0;
+}
+} // namespace
+void preferences_self_test(bool enabled) {
+    if (!board::lock(1000)) {
+        ESP_LOGI("qa_preferences", "complete=1 pass=0");
+        return;
+    }
+    preferences_test.enabled = enabled;
+    preferences_test.stage = -1;
+    bool scheduled = lv_async_call(preferences_test_ui, nullptr) == LV_RESULT_OK;
+    board::unlock();
+    bool committed = false;
+    uint64_t deadline = now_ms() + 15000;
+    while (scheduled && now_ms() < deadline) {
+        if (preferences_test.stage.load() >= 0) {
+            std::lock_guard<std::mutex> guard(mutex);
+            if (state.preferences_save_result != preferences_test.result_before) {
+                committed = state.preferences_save_ok && state.preferences.auto_rotate == enabled &&
+                            state.preferences.brightness == preferences_test.before.brightness &&
+                            state.preferences.dim_seconds == preferences_test.before.dim_seconds;
+                break;
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+    vTaskDelay(pdMS_TO_TICKS(200));
+    bool ok = preferences_test.stage.load() == 1 && committed &&
+              (enabled || board::orientation() == spark::Orientation::Upright);
+    ESP_LOGI("qa_preferences", "complete=1 pass=%u auto_rotate=%u", unsigned(ok),
+             unsigned(enabled));
+}
+void rotation_self_test() {
+    if (!board::lock(1000))
+        return;
+    rotation_testing = true;
+    auto original = board::orientation();
+    board::unlock();
+    for (unsigned o = 0; o < 4; ++o) {
+        if (!board::lock(1000))
+            break;
+        bool applied = board::set_orientation(spark::Orientation(o));
+        board::unlock();
+        ESP_LOGI("qa_rotation", "angle=%u applied=%u", o * 90, unsigned(applied));
+        vTaskDelay(pdMS_TO_TICKS(500));
+        navigation_self_test();
+    }
+    if (board::lock()) {
+        board::set_orientation(original);
+        rotation_testing = false;
+        board::unlock();
+    }
+    ESP_LOGI("qa_rotation", "complete=1");
+}
 void navigation_self_test() {
     if (!board::lock(1000)) {
         ESP_LOGI("qa_navigation", "complete=1 pass=0");
@@ -497,17 +676,17 @@ void navigation_self_test() {
     bool ok = true;
     unsigned maximum = 0;
     for (unsigned i = 0; i < 20; ++i) {
-        send(i < 10 ? CommandType::Next : CommandType::Previous);
         uint32_t sequence;
         {
             std::lock_guard<std::mutex> lock(mutex);
-            sequence = state.navigation_sequence;
+            sequence = state.navigation_sequence + 1;
         }
+        bool queued = send(i < 10 ? CommandType::Next : CommandType::Previous);
         uint64_t deadline = now_ms() + 1000;
         while (navigation_rendered.load() < sequence && now_ms() < deadline)
             vTaskDelay(pdMS_TO_TICKS(5));
         uint32_t elapsed = navigation_ms.load();
-        bool passed = navigation_rendered.load() >= sequence && elapsed <= 250;
+        bool passed = queued && navigation_rendered.load() >= sequence && elapsed <= 250;
         maximum = std::max(maximum, unsigned(elapsed));
         ok = ok && passed;
         ESP_LOGI("qa_navigation", "sample=%u panel_ms=%u pass=%u", i, unsigned(elapsed),

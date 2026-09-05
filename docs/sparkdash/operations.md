@@ -71,13 +71,13 @@ The normal sparkDash application accepts newline-terminated commands:
 
 | Command | Effect |
 | --- | --- |
-| `STATUS` | Prints connection, request, memory, stack and dimming counters |
+| `STATUS` | Prints connection, request, memory, stack, dimming and orientation counters |
 | `NEXT` | Selects the next cached node and requests a scheduling refresh |
 | `PREV` | Selects the previous cached node and requests a scheduling refresh |
 
-These are not shell commands, and the factory application has no verified compatible protocol. No normal USB command edits credentials or invokes a DGX control action. Validation builds additionally implement `TEST_URL`, `TEST_RESET` and `TEST_RECONNECT`; see [testing](testing.md).
+These are not shell commands, and the factory application has no verified compatible protocol. No normal USB command edits credentials or invokes a DGX control action. Validation builds additionally implement transport, portal, navigation, rotation and preference test commands; see [testing](testing.md).
 
-STATUS fields include uptime in milliseconds, discovered count and zero-based selection, station connectivity, completed requests/errors, current free internal heap/largest block, unused stack bytes for diagnostics/network/UI, commanded brightness, dim flag and timeout seconds. Counters reset on reboot. `connected` indicates the Wi-Fi link, not independent proof of a successful current server response. Look for growing requests, stable errors, accepted data and the reported status together.
+STATUS fields include uptime in milliseconds, discovered count and zero-based selection, station connectivity, completed requests/errors, current free internal heap/largest block, unused stack bytes for diagnostics/network/UI, commanded brightness, dim flag and timeout seconds. `auto_rotate` reports the saved toggle, `orientation` is 0/90/180/270 degrees clockwise from the original upright display, and `imu_ok` indicates rotation availability. Counters reset on reboot. `connected` indicates the Wi-Fi link, not independent proof of a successful current server response. Look for growing requests, stable errors, accepted data and the reported status together.
 
 The periodic `health` line includes minimum-ever internal heap. Log output is observational; it is not proof of physical display updates. The bounded check tools write JSON and raw logs under ignored paths and close the port on completion.
 

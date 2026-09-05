@@ -388,12 +388,21 @@ static void worker(void *) {
                 auto p = command.preferences;
                 p.brightness = std::clamp<unsigned>(p.brightness, 10, 100);
                 p.dim_seconds = std::clamp<unsigned>(p.dim_seconds, 30, 600);
-                if (save_blob("preferences", &p, sizeof p)) {
+                p.version = 2;
+                auto record = spark::encode_preferences(p);
+                if (save_blob("preferences", record.data(), record.size())) {
                     std::lock_guard<std::mutex> lock(mutex);
                     state.preferences = p;
+                    state.preferences_save_result++;
+                    state.preferences_save_ok = true;
                     state.revision++;
-                } else
-                    status("Could not save display preferences");
+                } else {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    state.preferences_save_result++;
+                    state.preferences_save_ok = false;
+                    spark::copy_text(state.status, sizeof state.status,
+                                     "Could not save display preferences");
+                }
                 break;
             }
             case CommandType::Configure: {
@@ -613,9 +622,9 @@ void network_start() {
         if (err == ESP_OK && !has_saved)
             state.config_error = true;
         spark::Preferences p;
-        if (load_blob("preferences", &p, sizeof p) == ESP_OK && p.version == 1 &&
-            p.brightness >= 10 && p.brightness <= 100 && p.dim_seconds >= 30 &&
-            p.dim_seconds <= 600)
+        spark::PreferencesRecord record{};
+        if (load_blob("preferences", record.data(), record.size()) == ESP_OK &&
+            spark::decode_preferences(record.data(), record.size(), p))
             state.preferences = p;
     } else
         state.config_error = true;
