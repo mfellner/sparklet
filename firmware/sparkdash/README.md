@@ -105,3 +105,13 @@ uv run tools/check_http_device.py --host MAC_LAN_IP --output logs/http-device.js
 Test commands exist only in that build: `TEST_URL http://...` selects a volatile test server, `TEST_RESET` restores the saved URL, and `TEST_RECONNECT` disconnects/reconnects only this display's Wi-Fi. No command changes saved credentials or sends control requests to a DGX. The runner hosts a synthetic HTTP server on port 5556, checks normalized values and cached-state preservation, then restores the saved URL in its cleanup path. It records ignored JSON/raw evidence. Reinstall the normal build afterward. The release packager rejects a configuration with test commands enabled.
 
 These diagnostics test network-worker/cache behavior; they do not claim to simulate physical touch or prove touch-to-photon latency.
+
+Add `--extended` to the HTTP runner for a prolonged synthetic-server outage/restart and a live list reorder without clearing the cache. Use `--cases chunked --extended` to avoid repeating unrelated fault cases.
+
+To compare the deployed API with the ESP32's normalized cache, use a validation build and:
+
+```sh
+uv run tools/check_http_device.py --host MAC_LAN_IP --live-source http://dgx01.local:5555 --output logs/live-api-comparison.json
+```
+
+This performs read-only GETs, freezes the five node responses in an ignored snapshot, and replays those exact values through the ESP32. It checks all 16 numeric/validity fields per node, roles, online states and ordering against an independent Python reference. Explicit source readback prevents comparisons against the old cache before switching servers. The saved server is restored in cleanup and the normal firmware must be reinstalled after validation.

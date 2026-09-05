@@ -57,15 +57,18 @@ static void diagnostics_task(void *) {
                 ESP_LOGI("qa", "node=%s received=%u received_ms=%llu online=%u role=%u status=%s",
                          id, unsigned(v.node.received), (unsigned long long)v.node.received_ms,
                          unsigned(v.node.online), unsigned(v.node.role), error);
+                static char source[961];
+                spark::percent_encode(v.url, source, sizeof source);
+                ESP_LOGI("qa_source", "%s", source);
                 const spark::Value values[] = {
-                    v.node.used,     v.node.total,      v.node.available,   v.node.temperature,
-                    v.node.usage,    v.node.power,      v.node.power_limit, v.node.cpu_usage,
-                    v.node.cpu_temp, v.node.disk_used,  v.node.disk_total,  v.node.rx,
-                    v.node.tx,       v.node.generation, v.node.prefill};
-                const char *keys[] = {"used",     "total",      "available",   "temperature",
-                                      "usage",    "power",      "power_limit", "cpu_usage",
-                                      "cpu_temp", "disk_used",  "disk_total",  "rx",
-                                      "tx",       "generation", "prefill"};
+                    v.node.percent,     v.node.used,     v.node.total,      v.node.available,
+                    v.node.temperature, v.node.usage,    v.node.power,      v.node.power_limit,
+                    v.node.cpu_usage,   v.node.cpu_temp, v.node.disk_used,  v.node.disk_total,
+                    v.node.rx,          v.node.tx,       v.node.generation, v.node.prefill};
+                const char *keys[] = {"percent",     "used",     "total",      "available",
+                                      "temperature", "usage",    "power",      "power_limit",
+                                      "cpu_usage",   "cpu_temp", "disk_used",  "disk_total",
+                                      "rx",          "tx",       "generation", "prefill"};
                 for (unsigned i = 0; i < sizeof(values) / sizeof(values[0]); ++i)
                     ESP_LOGI("qa_value", "%s=%.6f valid=%u", keys[i], values[i].value,
                              unsigned(values[i].valid));

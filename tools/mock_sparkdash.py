@@ -85,19 +85,29 @@ class Handler(BaseHTTPRequestHandler):
             "rate": 429,
             "error": 500,
         }.get(scenario, 200)
-        records = nodes(
-            0 if scenario == "empty" else 17 if scenario == "many" else 5,
-            scenario == "reorder",
-        )
-        payload = {"sparks": records}
-        if len(parts) == 4 and parts[:2] == ["api", "sparks"] and parts[3] == "metrics":
-            node = next((n for n in records if n["id"] == parts[2]), None)
-            if node is None:
-                status, payload = 404, {"error": "Unknown node"}
-            else:
-                payload = metrics(node)
-        elif parts != ["api", "sparks"]:
-            status, payload = 404, {"error": "Unknown endpoint"}
+        if getattr(self.server, "snapshot", None) is not None:
+            payload = self.server.snapshot.get("/" + "/".join(parts))
+            status = 200 if payload is not None else 404
+            if payload is None:
+                payload = {"error": "Unknown snapshot endpoint"}
+        else:
+            records = nodes(
+                0 if scenario == "empty" else 17 if scenario == "many" else 5,
+                scenario == "reorder",
+            )
+            payload = {"sparks": records}
+            if (
+                len(parts) == 4
+                and parts[:2] == ["api", "sparks"]
+                and parts[3] == "metrics"
+            ):
+                node = next((n for n in records if n["id"] == parts[2]), None)
+                if node is None:
+                    status, payload = 404, {"error": "Unknown node"}
+                else:
+                    payload = metrics(node)
+            elif parts != ["api", "sparks"]:
+                status, payload = 404, {"error": "Unknown endpoint"}
         data = json.dumps(payload).encode()
         if scenario == "limit":
             payload["padding"] = ""
