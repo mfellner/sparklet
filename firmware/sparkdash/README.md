@@ -79,3 +79,11 @@ python3 tools/package_release.py releases/sparkdash-v1-candidate
 ```
 
 The tool builds first, verifies the pinned SDK/target, copies generated flash arguments and binaries, includes the dependency lock and exact build configuration, and emits revision/compiler metadata plus SHA-256 checksums. It refuses an existing destination or a dirty checkout. Factory backups, credentials, NVS data and raw logs are excluded. Follow `FLASH.txt` inside the bundle; its flash arguments are relative to that directory. Packaging does not itself pass hardware acceptance gates.
+
+For a bounded live USB measurement (opening may reboot the device):
+
+```sh
+uv run tools/check_device.py --seconds 60 --output logs/live-check.json
+```
+
+This verifies continued five-node polling, request-error stability, sampled internal heap/largest block, and UI/network/diagnostics task stack margins. It does not simulate touch or prove worst-case response memory. The JSON and adjacent raw log stay ignored.

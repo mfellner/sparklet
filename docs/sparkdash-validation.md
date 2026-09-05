@@ -11,11 +11,11 @@ Updated 2026-09-05. This is a development build, not a completed release accepta
 | Controlled host HTTP | Five unittest groups passed: normal/chunked, list variations, status errors, interrupted/oversized/malformed/stalled responses. Does not validate IDF transport. |
 | Display / touch | User confirmed upright readable screen and Settings/Back touch; supplied photos. Full corner/swipe/dim testing pending. |
 | QR setup | Two-step Wi-Fi/URL QR build compiled, flashed and booted. iPhone photos confirm decoding and successful Wi-Fi join. |
-| Startup memory | 24-row draw stripe: 53,872 B free internal heap, 38,912 B largest block; network stack high-water mark 5,220 B. |
+| Startup / live sampled memory | Startup: 53,872 B free internal heap, 38,912 B largest block. Subsequent 60-second live check: minimum sampled heap 68,968 B, largest block 50,176 B; spare stacks diagnostics 1,800 B, network 2,988 B, UI 13,740 B. Maximum-response/portal load still pending. |
 | Phone provisioning | QR-assisted join succeeded. Portal incorrectly rejected IPv4-mapped IPv6 local addresses; corrected and host regression-tested. Subsequent phone screenshot confirms saved Wi-Fi and successful connection. |
 | Live five-node display | Photos show five discovered nodes and live cards at positions 1, 2 and 5, plus Details. Simultaneous API/value comparison for every node remains pending. |
 | Recovery / performance | Physical Wi-Fi, DNS/mDNS, IDF HTTP faults and timing measurements pending. |
 | 24-hour soak | Explicitly excluded by the user from v1 completion; not performed. |
-| Full release / restore gate | Pending. Do not treat a generated build bundle as passed release validation. |
+| Candidate bundle / restore gate | Candidate 2078c8a generated with pinned SDK, lockfile, relative generated flash arguments and checksums. All checksums and flash references verified. Full release acceptance and physical restore validation remain pending. |
 
 Raw boot logs and backups remain ignored. Startup memory alone does not establish worst-case memory acceptance. The user excluded the 24-hour soak from v1 completion. Bounded controlled-failure, navigation, stack and memory measurements remain required; no long-duration reliability claim is made.
