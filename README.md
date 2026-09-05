@@ -2,7 +2,7 @@
 
 Local development notes and tools for a **Waveshare ESP32-C6-Touch-AMOLED-2.16**: a USB-connected ESP32-C6 with a 480 × 480 AMOLED touchscreen.
 
-The board was successfully contacted on macOS on **2026-09-05**. It currently runs the factory `01_Fac` application. This repository contains documentation and host tools; no custom firmware project or build toolchain has been configured yet.
+The board was successfully contacted on macOS on **2026-09-05**. The factory image has been backed up, and the board now runs the native [sparkDash companion firmware](firmware/sparkdash/README.md). Phone provisioning and full release validation are in progress.
 
 ## Quick start
 
@@ -35,4 +35,4 @@ Paths can change after reconnecting. `/dev/cu.usbmodem2101` was the observed pat
 
 The versioned skill is in [skills/esp32-c6-waveshare/SKILL.md](skills/esp32-c6-waveshare/SKILL.md). It is installed locally through a symlink at `~/.codex/skills/esp32-c6-waveshare`. Use `$esp32-c6-waveshare` in a future task; a new task/session may be needed for skill discovery. If this repository moves, update the symlink.
 
-Raw logs, flash backups, local credentials, and build outputs are ignored by Git. No firmware was written or erased during repository setup.
+Raw logs, flash backups, local credentials, and build outputs are ignored by Git. Firmware bring-up results are recorded in [the validation notes](notes/2026-09-05-firmware-bringup.md).
