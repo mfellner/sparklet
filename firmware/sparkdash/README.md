@@ -1,6 +1,8 @@
 # sparkDash companion
 
-Read-only native dashboard for the Waveshare ESP32-C6-Touch-AMOLED-2.16. Firmware is under physical validation; it is not yet a fully validated release.
+Read-only native dashboard for the Waveshare ESP32-C6-Touch-AMOLED-2.16. Firmware is under physical validation; it is not yet a fully validated release. The latest candidate has an unresolved post-flash USB response failure; see the [current validation report](../../docs/sparkdash-validation.md).
+
+The [complete documentation](../../docs/sparkdash/README.md) covers [daily use](../../docs/sparkdash/user-guide.md), [architecture/API](../../docs/sparkdash/architecture.md), [development](../../docs/sparkdash/development.md), [testing](../../docs/sparkdash/testing.md), and [release/troubleshooting](../../docs/sparkdash/operations.md). This README is a quick command reference.
 
 ## Set up
 
@@ -68,7 +70,7 @@ python3 tools/mock_sparkdash.py --host 0.0.0.0 --port 5556
 
 Use the host's LAN IPv4 address and a scenario prefix such as `/chunked`, `/stall`, `/oversized`, or `/rate` as the configured server base path. Do not disrupt production DGX services or the router for failure testing.
 
-USB diagnostics accept newline-terminated `STATUS`, `NEXT`, and `PREV`. They expose counters and memory, not credentials, and are not a shell. Physical touch, phone setup, actual IDF timeout recovery, live data accuracy, performance, remain separate hardware acceptance gates. The user explicitly excluded the 24-hour soak; this release makes no 24-hour stability claim. See the bring-up notes for tested facts.
+USB diagnostics accept newline-terminated `STATUS`, `NEXT`, and `PREV`. They expose counters and memory, not credentials, and are not a shell. Each physical, transport, live-data and performance check has its own evidence requirements; see the validation report for completed and pending gates. The user explicitly excluded the 24-hour soak; this release makes no 24-hour stability claim. See the bring-up notes for tested facts.
 
 ## Create a distributable bundle
 

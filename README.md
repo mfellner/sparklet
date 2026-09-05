@@ -2,7 +2,7 @@
 
 Local development notes and tools for a **Waveshare ESP32-C6-Touch-AMOLED-2.16**: a USB-connected ESP32-C6 with a 480 × 480 AMOLED touchscreen.
 
-The board was successfully contacted on macOS on **2026-09-05**. The factory image has been backed up, and the board now runs the native [sparkDash companion firmware](firmware/sparkdash/README.md). Phone provisioning and full release validation are in progress.
+The board was successfully contacted on macOS on **2026-09-05**. Its factory image is backed up, and earlier runs of the native [sparkDash companion firmware](firmware/sparkdash/README.md) demonstrated phone provisioning and live five-node operation. V1 acceptance remains incomplete: the latest candidate has an unresolved post-flash USB response failure. See the [validation report](docs/sparkdash-validation.md). The 24-hour soak test is explicitly excluded.
 
 ## Quick start
 
@@ -24,6 +24,18 @@ uv run scripts/esp32_serial.py monitor --port /dev/cu.usbmodem2101 --seconds 10 
 Paths can change after reconnecting. `/dev/cu.usbmodem2101` was the observed path, not a permanent identifier.
 
 ## Documentation
+
+Start with the [complete sparkDash documentation](docs/sparkdash/README.md):
+
+- [Phone setup and daily use](docs/sparkdash/user-guide.md)
+- [Architecture, API contract and memory model](docs/sparkdash/architecture.md)
+- [SDK installation and development](docs/sparkdash/development.md)
+- [Testing and acceptance procedures](docs/sparkdash/testing.md)
+- [Release packaging, diagnostics and troubleshooting](docs/sparkdash/operations.md)
+- [Current validation status](docs/sparkdash-validation.md)
+- [Verified full-flash recovery](docs/recovery.md)
+
+Hardware and project references:
 
 - [Hardware and observed pin assignments](docs/hardware.md)
 - [USB, serial, backup, and development workflow](docs/interaction.md)
