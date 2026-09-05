@@ -1,1 +1,1 @@
-idf_component_register(SRCS "main.cpp" "network.cpp" "portal.cpp" "ui.cpp" "diagnostics.cpp" INCLUDE_DIRS "." REQUIRES core board esp_wifi esp_event esp_netif nvs_flash esp_http_client esp_http_server mdns esp_timer esp_system esp_driver_usb_serial_jtag)
+idf_component_register(SRCS "main.cpp" "network.cpp" "portal.cpp" "ui.cpp" "diagnostics.cpp" "portal_test.cpp" INCLUDE_DIRS "." REQUIRES esp_app_format core board esp_wifi esp_event esp_netif nvs_flash esp_http_client esp_http_server mdns esp_timer esp_system esp_driver_usb_serial_jtag)

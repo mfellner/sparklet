@@ -6,7 +6,7 @@
 
 A passing build proves compilation/linking. Host tests exercise shared code, not ESP-IDF transport or physical touch. USB navigation exercises the command/cache path, not the touchscreen. A brightness command establishes the requested brightness, not a calibrated optical measurement. Each test result must state its scope.
 
-The [validation report](../sparkdash-validation.md) records current results. The newest candidate is not accepted because post-flash USB communication is unresolved. The 24-hour soak is explicitly excluded from the goal and must not be silently reintroduced as a gate. The remaining bounded physical, timing, provisioning and memory checks are still required.
+The [validation report](../sparkdash-validation.md) records current results. The earlier post-flash USB stall recovered after physical reconnection. The final v1 results, including that incident, are recorded in the report. The 24-hour soak is explicitly excluded from the goal and must not be silently reintroduced as a gate. Use the procedures below when changing the corresponding implementation; do not infer long-duration reliability from bounded checks.
 
 ## Host tests
 
@@ -48,7 +48,7 @@ Acceptance thresholds checked in observed live samples:
 | Largest free internal block | 16 KiB |
 | Spare diagnostics/network/UI task stack | 1 KiB each |
 
-These measurements do not yet cover setup HTTP task peak stack. The application's periodic health line adds minimum-ever internal heap, which helps identify transient pressure but is not a complete per-phase allocation trace.
+The separate portal validator additionally measured the setup HTTP task peak stack. The application's periodic health line adds minimum-ever internal heap, which helps identify transient pressure but is not a complete per-phase allocation trace.
 
 For inactivity, leave the physical device untouched:
 
@@ -137,12 +137,25 @@ Normal touch-to-visible feedback target is 150 ms; cached node changes target 25
 
 Measure physical feedback with a timestamped/high-frame-rate recording or suitable device instrumentation that captures the input and actual visible update. A USB command timestamp or LVGL render-submission event alone is not touch-to-photon evidence. Do not claim these thresholds passed from the 100 ms UI timer or 33 ms refresh configuration alone.
 
-Before final acceptance:
+For a new release, repeat the affected acceptance gates:
 
-1. Resolve the latest candidate's USB/runtime failure and verify boot, saved connection and live polling on the final image.
-2. Complete the pending physical, provisioning, timing and portal-resource checks above.
+1. Verify boot, saved connection and live polling on the final image; investigate any reset or USB/runtime failure.
+2. Complete the physical, provisioning, timing and portal-resource checks affected by the changes.
 3. Re-run checks affected by any resulting code change; do not repeat unrelated passing suites without a reason.
 4. Verify the final bundle's checksums, source/SDK/lock metadata, generated flash references and normal-build configuration.
 5. Update the validation report with exact evidence, remaining limitations and the explicit soak exclusion.
 
 Full factory restore followed by return to a saved custom image has already been physically exercised. See [recovery](../recovery.md); repeat only if a changed recovery-relevant artifact or failure warrants it.
+
+## Portal and display timing validators
+
+The isolated QA build also accepts `TEST_PORTAL` and `TEST_NAV`; normal release binaries exclude them. No test controls are served over HTTP on the normal LAN.
+
+```sh
+uv run tools/check_portal_device.py --output logs/portal-check-new.json
+uv run tools/check_ui_device.py --seconds 150 --output logs/ui-timing-new.json
+```
+
+The portal validator calls the actual device HTTP server through its own setup address, exercises asynchronous scan and invalid/maximum submissions, waits for a deliberately nonexistent SSID to fail, verifies saved NVS bytes are unchanged, cancels and verifies live reconnection. It borrows the idle metrics response buffer while a test lease suspends polling; cancellation cannot cause simultaneous buffer use. The test adds a client within the firmware, so its measured pressure is conservative relative to a phone client. It does not simulate phone radio authentication or claim to do so. Raw data and credentials are not emitted by the test protocol.
+
+The UI validator automatically exercises 20 next/previous selections and requires each to reach completed SPI transfer within 250 ms. During the remaining window, physically tap the navigation or Settings/Back buttons. It requires actual button samples; `--touch-only` captures these without repeating navigation. The touch gate adds one configured 33 ms input polling period to sampled-input-to-panel-transfer duration and compares with 150 ms. A queue-drain operation completes pending SPI writes without changing any panel register. Optical scan-out is not instrumented; user confirmation of visible operation remains separate. Missing physical samples are a failed/incomplete capture, never a pass.

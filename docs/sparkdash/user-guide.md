@@ -82,7 +82,7 @@ Settings displays the server, Wi-Fi details, firmware version and a diagnostic s
 - The first touch after dimming is consumed to wake the screen. A subsequent touch activates controls.
 - Setup QR pages remain awake. Normal Overview, Details and Settings use the inactivity policy.
 
-The idle dim command and continued polling were measured. Physical first-touch consumption and Settings-specific visual behavior still require final confirmation on the latest firmware.
+The idle dim command and continued polling were measured. The user confirmed physical navigation, Details/Back and first-touch-only wake. Real button samples reached completed panel transfers in 4–19 ms; optical scan-out was not measured.
 
 ## Reconfigure, cancel and forget
 

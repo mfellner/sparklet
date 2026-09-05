@@ -9,6 +9,12 @@
 #include <cstring>
 #include <string>
 namespace app {
+std::atomic<uint32_t> portal_stack_free{0};
+struct StackSample {
+    ~StackSample() {
+        portal_stack_free = uxTaskGetStackHighWaterMark(nullptr);
+    }
+};
 static httpd_handle_t server;
 static char token[33];
 static std::string quote(const char *s) {
@@ -57,6 +63,7 @@ form.onsubmit=async e=>{e.preventDefault();save.disabled=true;const data=new URL
 setInterval(async()=>{try{const r=await fetch('/setup/status');const d=await r.json();statusEl.textContent=d.status;if(d.status.includes('failed')||d.status.includes('Could not'))save.disabled=false;}catch{}},1500);
 </script></html>)HTML";
 static esp_err_t page(httpd_req_t *r) {
+    StackSample sample;
     if (!ap_only(r))
         return ESP_OK;
     httpd_resp_set_type(r, "text/html; charset=utf-8");
@@ -67,6 +74,7 @@ static esp_err_t page(httpd_req_t *r) {
     return httpd_resp_send_chunk(r, nullptr, 0);
 }
 static esp_err_t get_status(httpd_req_t *r) {
+    StackSample sample;
     if (!ap_only(r))
         return ESP_OK;
     View v;
@@ -75,6 +83,7 @@ static esp_err_t get_status(httpd_req_t *r) {
 }
 static bool scanning = false;
 static esp_err_t scan(httpd_req_t *r) {
+    StackSample sample;
     if (!ap_only(r))
         return ESP_OK;
     if (!scanning) {
@@ -107,6 +116,7 @@ static esp_err_t scan(httpd_req_t *r) {
     return json(r, s + "]}");
 }
 static esp_err_t configure(httpd_req_t *r) {
+    StackSample sample;
     if (!ap_only(r))
         return ESP_OK;
     if (r->content_len <= 0 || r->content_len > 2048)

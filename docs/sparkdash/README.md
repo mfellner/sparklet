@@ -4,9 +4,9 @@ A native, read-only sparkDash companion for the **Waveshare ESP32-C6-Touch-AMOLE
 
 ## Current status
 
-Firmware, QR provisioning, node views, host tests, device test tools, backup/recovery tooling and release packaging are implemented. Earlier physical runs demonstrated phone setup and live five-node operation. **V1 acceptance is incomplete:** candidate `3376e53` flashed successfully, but its subsequent USB check stopped receiving data after application handoff. The board needs a physical power-cycle and further diagnosis. Do not interpret a successful build or package checksum as a successful runtime test.
+Version **1.0.0** implements the v1 dashboard scope. Phone setup, live five-node operation, controlled HTTP failures, saved-configuration recovery, memory limits, physical controls and firmware-side display timing have been validated. The earlier USB communication incident recovered after physical reconnection; its underlying cause was not isolated. See the report for the final-image evidence and practical limits.
 
-The [validation report](../sparkdash-validation.md) is the current authority for tested facts and remaining gates. The [bring-up log](../../notes/2026-09-05-firmware-bringup.md) preserves the investigation history, including failed tests and corrections. The user explicitly excluded the 24-hour soak test; no 24-hour reliability claim is made.
+The [validation report](../sparkdash-validation.md) is the current authority for tested facts and limitations. The [bring-up log](../../notes/2026-09-05-firmware-bringup.md) preserves the investigation history, including failed tests and corrections. The user explicitly excluded the 24-hour soak test; no 24-hour reliability claim is made.
 
 ## Reading guide
 

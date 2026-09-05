@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "board.hpp"
+#include "esp_app_desc.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include <algorithm>
@@ -22,6 +23,32 @@ uint64_t last_touch = 0;
 bool dimmed = false, was_down = false, consume_touch = false;
 int start_x = 0, start_y = 0;
 unsigned last_brightness = 0;
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+std::atomic<uint32_t> navigation_rendered{0}, navigation_ms{0};
+uint32_t touch_started = 0;
+bool rendered_frame = false;
+void timing_event(lv_event_t *e) {
+    if (lv_event_get_code(e) == LV_EVENT_RENDER_READY) {
+        rendered_frame = true;
+        return;
+    }
+    if (!rendered_frame)
+        return;
+    rendered_frame = false;
+    if (touch_started || view.navigation_sequence > navigation_rendered.load()) {
+        board::wait_transfer();
+        uint32_t now = uint32_t(now_ms());
+        if (touch_started) {
+            ESP_LOGI("qa_touch", "input_to_panel_ms=%u", unsigned(now - touch_started));
+            touch_started = 0;
+        }
+        if (page == Page::Overview && view.navigation_sequence > navigation_rendered.load()) {
+            navigation_ms = now - view.navigation_started;
+            navigation_rendered = view.navigation_sequence;
+        }
+    }
+}
+#endif
 constexpr uint32_t Bg = 0x151615, Text = 0xf1f1ed, Muted = 0xaaa9a4, Amber = 0xe8ac2b,
                    Red = 0xf05b51, Green = 0x4ac09a;
 static lv_color_t color(uint32_t x) {
@@ -352,8 +379,8 @@ void tick(lv_timer_t *) {
         set(details, b);
     } else if (page == Page::Settings) {
         snprintf(b, sizeof b,
-                 "%s\nWi-Fi: %s (%d dBm)\nIP: %s | Firmware 0.1.0\nHeap: %u KiB | Errors: %u%s%s",
-                 view.url, view.ssid, view.rssi, view.ip,
+                 "%s\nWi-Fi: %s (%d dBm)\nIP: %s | Firmware %s\nHeap: %u KiB | Errors: %u%s%s",
+                 view.url, view.ssid, view.rssi, view.ip, esp_app_get_description()->version,
                  unsigned(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
                  unsigned(view.errors), view.overflow ? " | First 16 nodes only" : "",
                  view.config_error ? " | Configuration error" : "");
@@ -423,6 +450,12 @@ int last_x = 0, last_y = 0;
 bool filter(bool down, int x, int y) {
     bool previously = was_down;
     bool consumed = touch_filter(down, x, y);
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+    // Measure physical button input to completed panel transfer, not an idle refresh.
+    if (down && !previously && !consumed &&
+        ((page == Page::Overview && y >= 392 && y <= 436) || (x >= 342 && y >= 16 && y <= 60)))
+        touch_started = uint32_t(now_ms());
+#endif
     if (down) {
         last_x = x;
         last_y = y;
@@ -441,9 +474,47 @@ void ui_start() {
         page = view.setup ? Page::Setup : Page::Overview;
         build();
         board::set_touch_filter(filter);
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+        lv_display_add_event_cb(lv_display_get_default(), timing_event, LV_EVENT_RENDER_READY,
+                                nullptr);
+        lv_display_add_event_cb(lv_display_get_default(), timing_event, LV_EVENT_REFR_READY,
+                                nullptr);
+#endif
         lv_timer_create(tick, 100, nullptr);
         tick(nullptr);
         board::unlock();
     }
 }
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+void navigation_self_test() {
+    if (!board::lock(1000)) {
+        ESP_LOGI("qa_navigation", "complete=1 pass=0");
+        return;
+    }
+    page = Page::Overview;
+    board::unlock();
+    vTaskDelay(pdMS_TO_TICKS(200));
+    bool ok = true;
+    unsigned maximum = 0;
+    for (unsigned i = 0; i < 20; ++i) {
+        send(i < 10 ? CommandType::Next : CommandType::Previous);
+        uint32_t sequence;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            sequence = state.navigation_sequence;
+        }
+        uint64_t deadline = now_ms() + 1000;
+        while (navigation_rendered.load() < sequence && now_ms() < deadline)
+            vTaskDelay(pdMS_TO_TICKS(5));
+        uint32_t elapsed = navigation_ms.load();
+        bool passed = navigation_rendered.load() >= sequence && elapsed <= 250;
+        maximum = std::max(maximum, unsigned(elapsed));
+        ok = ok && passed;
+        ESP_LOGI("qa_navigation", "sample=%u panel_ms=%u pass=%u", i, unsigned(elapsed),
+                 unsigned(passed));
+        vTaskDelay(pdMS_TO_TICKS(150));
+    }
+    ESP_LOGI("qa_navigation", "complete=1 pass=%u maximum_ms=%u", unsigned(ok), maximum);
+}
+#endif
 } // namespace app

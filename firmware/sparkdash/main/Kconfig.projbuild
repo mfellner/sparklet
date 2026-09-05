@@ -1,8 +1,9 @@
 menu "sparkDash validation"
 config SPARKDASH_TEST_COMMANDS
-    bool "Enable temporary USB test-server and reconnect commands"
+    bool "Enable USB validation commands"
     default n
     help
         Validation builds only. Allows a volatile server override over USB and
-        station reconnect without changing NVS or production services.
+        station reconnect, local portal validation, and display timing.
+        Test-only controls must not be enabled in release builds.
 endmenu

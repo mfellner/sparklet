@@ -33,6 +33,17 @@ static unsigned wifi_failures = 0;
 static spark::Scheduler schedule;
 static esp_netif_t *sta_netif;
 static char body[spark::BodyLimit + 1];
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+// Borrow before requesting setup, use only after setup starts.
+static std::atomic<bool> portal_test_owns_buffer{false};
+char *portal_test_buffer() {
+    portal_test_owns_buffer = true;
+    return body;
+}
+void portal_test_buffer_release() {
+    portal_test_owns_buffer = false;
+}
+#endif
 static char resolved[20]{}, resolved_host[128]{};
 static bool previous_connected = false;
 static std::mutex request_mutex;
@@ -69,6 +80,10 @@ bool send(CommandType t) {
         std::lock_guard<std::mutex> guard(mutex);
         spark::move(cache, t == CommandType::Previous ? -1 : 1);
         state.revision++;
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+        state.navigation_started = uint32_t(now_ms());
+        state.navigation_sequence++;
+#endif
         t = CommandType::SelectionChanged;
     }
     Command c{};
@@ -470,7 +485,11 @@ static void worker(void *) {
                 reconnect_at = now + sec * 1000;
                 status("Wi-Fi disconnected; reconnecting");
             }
-        } else if (has_saved) {
+        } else if (has_saved
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+                   && !portal_test_owns_buffer.load()
+#endif
+        ) {
             size_t count, selected;
             {
                 std::lock_guard<std::mutex> lock(mutex);

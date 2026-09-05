@@ -13,19 +13,10 @@ The user authorized publishing this project to a **new repository under mfellner
 
 On 2026-09-05, GitHub CLI authentication selected mfellner and the repository lookup for `mfellner/sparklet` returned 404. Availability must be checked again at creation time. No new GitHub repository has been created and no push has been performed. The local repository currently has no remote.
 
-## Completion dependency
+## Release readiness
 
-Do not publish merely because these presentation assets are ready. Finish the existing v1 goal, including its bounded physical acceptance checks, with the explicit 24-hour soak exclusion. The unresolved candidate USB response failure and pending checks are recorded in the [validation report](../sparkdash-validation.md). A physical power-cycle and screen report are currently needed to resume that work.
+The bounded v1 acceptance checks are complete, including actual device HTTP failures, setup recovery, live data, memory and physical input timing. The 24-hour soak is excluded by request. See the [validation report](../sparkdash-validation.md) for evidence and limitations.
 
-## Publication sequence
+The public assets contain the generated cover and three historical device photographs. No setup credentials, flash backups, raw logs or local release directories are tracked. Reviewed history scans found no backup/log artifacts or high-confidence credential patterns; this is not a claim of exhaustive secret detection. Source attribution and the vendor license limitation remain recorded in firmware provenance.
 
-1. Complete v1 and update the validation report and README status to the actual final result. Replace historical screenshots with newer verified photos if available; do not retouch their metrics to simulate verification.
-2. Review the tracked tree and history for credentials, raw device data and unintentional files. Backup/log/release/local-artifact directory paths were absent from history at preparation time. Public photo copies have no EXIF/XMP/IPTC metadata; retain that property for replacement photos.
-3. Review source/dependency attribution and the existing vendor license limitation in provenance. Do not add a blanket license badge or claim a license grant that is not established.
-4. Commit the final reviewed source and presentation; verify a clean checkout and the final release bundle.
-5. Recheck name availability. Create a new public repository under mfellner, add its remote and push the intended source history. Do not replace or force-push an existing repository if the name is taken.
-6. Set the repository description and relevant topics such as `esp32`, `esp32-c6`, `lvgl`, `dgx-spark`, `dashboard` and `waveshare`.
-7. Verify the published default branch, README cover/gallery, documentation links and source visibility. Attach only the reviewed firmware bundle/checksums if publishing a release; never upload full device snapshots or raw logs.
-8. Return the actual repository URL and final validation status to the user.
-
-The publication request is already authorized. The delay is the user's completion condition and unresolved hardware evidence, not an additional approval requirement.
+Publication uses a new public repository, without replacing any existing repository. Release artifacts contain normal firmware, generated flashing arguments, pinned dependency/build metadata and checksums. Full flash backups remain private.

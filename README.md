@@ -8,7 +8,7 @@ Sparklet turns a Waveshare ESP32-C6 AMOLED touchscreen into a native, Wi-Fi-conn
 
 One node at a time. Real metrics from your existing server. No server changes.
 
-> **Development status:** phone setup and live five-node operation have been demonstrated on the actual board. V1 acceptance is still incomplete: the latest candidate has an unresolved post-flash USB response failure, and some physical/performance checks remain. See the [validation report](docs/sparkdash-validation.md). The 24-hour soak test is explicitly excluded.
+> **V1 status:** phone setup and live five-node operation have been demonstrated on the actual board. V1 implements the daily-use dashboard and has passed bounded setup, transport, memory and interaction checks. The earlier USB stall recovered after physical reconnection; its cause was not isolated. See the [validation report](docs/sparkdash-validation.md). The 24-hour soak test is explicitly excluded.
 
 ## On the real device
 
@@ -27,7 +27,7 @@ These are user-supplied photographs of an earlier development build, not generat
   </tr>
 </table>
 
-The missing-glyph rectangle visible in these photos was subsequently addressed with display-only punctuation normalization. Updated physical confirmation remains pending. The cover above is an original generated illustration; the photos preserve the actual recorded screen content. [Asset provenance](docs/assets/README.md)
+The missing-glyph rectangle visible in these photos was subsequently addressed with display-only punctuation normalization. The corrected dash and navigation/dim-wake behavior were subsequently confirmed on the physical device. The cover above is an original generated illustration; the photos preserve the actual recorded screen content. [Asset provenance](docs/assets/README.md)
 
 ## What it does
 

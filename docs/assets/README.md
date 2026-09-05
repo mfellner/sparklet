@@ -9,4 +9,4 @@
 
 The user requested that project screenshots be included in the GitHub README. Public photo copies have private EXIF/XMP/IPTC metadata removed; the image pixels are not retouched. Color profiles are retained where present. Originals remain outside the repository. Setup screenshots containing passwords, QR credentials or local Wi-Fi configuration were deliberately not selected for publication.
 
-The photos retain the historical missing-glyph rectangle. The subsequent punctuation fix and its remaining physical validation are explained in the README rather than simulated by editing the screen content. New verified photos can replace these later, preserving the distinction between actual screenshots and generated artwork.
+The photos retain the historical missing-glyph rectangle. The subsequent punctuation fix and the user’s successful physical confirmation are explained in the README rather than simulated by editing the screen content. New verified photos can replace these later, preserving the distinction between actual screenshots and generated artwork.

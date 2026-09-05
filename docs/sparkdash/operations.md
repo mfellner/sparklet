@@ -6,7 +6,7 @@
 
 Use a clean committed checkout, the pinned activated ESP-IDF SDK, the locked components, target ESP32-C6 and 16 MiB flash configuration. Normal firmware must have validation-only commands disabled and reproducible build enabled. Read the [validation report](../sparkdash-validation.md) before deciding whether an artifact is a development candidate or an accepted release.
 
-Current candidate `sparkdash-v1-rc1` was packaged from 3376e53 and flashed from its extracted ZIP with successful data verification. Its next runtime check received only bootloader output and no diagnostic response; it is **not accepted for v1 completion**. The documentation commit recording that result is c275800. Later documentation does not retrospectively validate that binary.
+The earlier `sparkdash-v1-rc1` candidate passed flash verification but initially stopped responding on USB. Physical reconnection restored normal boot and live data, followed by further successful validation flashes and checks. Its cause was not isolated; the incident is retained in the validation history. Version 1.0.0 is the v1 application version. Always use the final bundle's own manifest, checksums and current acceptance report.
 
 ## Package a candidate
 
@@ -102,9 +102,9 @@ The periodic `health` line includes minimum-ever internal heap. Log output is ob
 | USB port missing | Check a data-capable cable, power, connection and enumeration. Do not select a different ESP32 just because its USB descriptor matches. |
 | Port busy | Close the existing monitor/tool before flashing or starting another reader. |
 | Port listed but no data | Use one bounded STATUS/boot check. Opening may reset the board. If bootloader and diagnostics both fail, stop repeated software resets and physically power-cycle, then re-enumerate. |
-| Bootloader log stops at app handoff | It does not prove app success or failure by itself. Inspect the screen and diagnostics. This is the unresolved rc1 symptom; keep that candidate unaccepted until diagnosed. |
+| Bootloader log stops at app handoff | It does not prove app success or failure by itself. Inspect the screen and diagnostics. This occurred once during rc1 development and recovered after physical reconnection; do not infer application health from bootloader output alone. |
 
-For the current unresponsive-USB condition, the requested next step is to physically power the board off/on and leave its USB data connection attached, then report whether the screen is live, blank or frozen. If the unit has a battery, unplugging USB alone may not power it down; use its power control. If download mode is required after that, follow the exact board's documented BOOT procedure and re-enumerate. Do not use protection overrides.
+If the unresponsive-USB condition recurs, the next step is to physically power the board off/on and leave its USB data connection attached, then report whether the screen is live, blank or frozen. If the unit has a battery, unplugging USB alone may not power it down; use its power control. If download mode is required after that, follow the exact board's documented BOOT procedure and re-enumerate. Do not use protection overrides.
 
 ## Backup, rollback and incident records
 

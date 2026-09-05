@@ -1,6 +1,6 @@
 # sparkDash companion
 
-Read-only native dashboard for the Waveshare ESP32-C6-Touch-AMOLED-2.16. Firmware is under physical validation; it is not yet a fully validated release. The latest candidate has an unresolved post-flash USB response failure; see the [current validation report](../../docs/sparkdash-validation.md).
+Read-only native dashboard for the Waveshare ESP32-C6-Touch-AMOLED-2.16. Version 1.0.0 provides the v1 dashboard scope. Bounded device and host validation are recorded in the [current validation report](../../docs/sparkdash-validation.md).
 
 The [complete documentation](../../docs/sparkdash/README.md) covers [daily use](../../docs/sparkdash/user-guide.md), [architecture/API](../../docs/sparkdash/architecture.md), [development](../../docs/sparkdash/development.md), [testing](../../docs/sparkdash/testing.md), and [release/troubleshooting](../../docs/sparkdash/operations.md). This README is a quick command reference.
 

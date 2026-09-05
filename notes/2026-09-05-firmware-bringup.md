@@ -99,3 +99,25 @@ The following 60-second runtime check failed (`logs/rc1-bundle-live.json`): zero
 ## USB-specific recovery attempt
 
 After the request to finish v1 urgently, another bounded STATUS check still received zero bytes. Inspected the pinned esptool 5.4.0 built-in USB-Serial-JTAG reset implementation and tried one `--before usb-reset --connect-attempts 1 flash-id` probe. It also failed with no serial data (`logs/rc1-usb-reset-probe.txt`). This was a reset/read-only identification attempt, not a flash write or security override. Both ordinary and USB-specific software entry attempts have now failed; physical power-cycle and screen observation remain the next required action.
+
+## Reconnection and final v1 checks
+
+After the user's physical reconnection, the same candidate booted, initialized the display/touch, rejoined Wi-Fi and passed `reconnected-live.json`: nine live samples, requests 3 → 43, zero request errors; minimum sampled heap 63,580 B, largest block 48,128 B, spare stacks diagnostics 3,352 B, network 2,988 B and UI 13,740 B. This resolves the immediate inability to communicate; the precise cause of the prior USB incident was not isolated. It is recorded as a development USB recovery limitation, not concealed as a successful first attempt.
+
+The user explicitly confirmed arrows/swipes wrapping through all five nodes, Details scrolling and returning to the same selection, the dash replacing the rectangle, and first-touch-only wake after dimming.
+
+Added a test-only local HTTP portal exercise, compiled out of normal releases. It checks page/status, token enforcement, missing fields, HTTPS rejection, exact/oversized submissions, asynchronous scanning, a random nonexistent candidate SSID, the 30-second failure path, unchanged saved connection bytes, cancellation and restored live operation. It never changes the router or submits real credentials through USB. Normal builds additionally expose the setup HTTP task's stack high-water mark.
+
+The initial run (`portal-device-final.json`) passed behavior checks, but its extra standalone response/form buffers reduced minimum-ever heap below the release target. Reused the existing metrics receive buffer with an explicit test lease that keeps polling suspended even if setup is cancelled; the buffer is cleared/released before polling resumes. `portal-device-bounded.json` then passed all 13 checks with minimum-ever internal heap 34,376 B, minimum sampled largest block 26,624 B, portal stack 3,416 B and diagnostics stack 1,368 B. Saved configuration remained byte-identical and five-node operation returned. The extra self-client still makes this more demanding than serving an external phone alone. This tests the actual setup HTTP server and candidate recovery, not phone radio authentication itself; successful phone provisioning was separately confirmed earlier.
+
+Added QA-only panel-transfer timing: LVGL render completion is followed by the SDK SPI queue-drain path (`tx_param` with a negative command and no data, which sends no panel command), then a monotonic timestamp. Normal builds contain none of these test controls/barriers. `ui-device-timing.json` passed 20 cached-navigation samples with maximum 157 ms against the 250 ms target, but the capture received no physical button samples; that part of the run was correctly marked incomplete. A separate physical-only capture is used rather than re-running the navigation checks. The timing measures the firmware input/render/SPI path, not optical panel scan-out.
+
+Prepared version 1.0.0, with boot and Settings reading the version from the generated application descriptor. Normal and second-directory builds have identical app/bootloader/partition bytes. The normal application SHA-256 is `b5be4bf71b18a93b83c358aea4081431caffa76296a8899e6ff7731d876f17ee` (1,753,296 bytes); evidence is `logs/v1-reproducible-binaries.json`. TEST_URL/TEST_PORTAL/TEST_NAV strings are absent from the normal binary. Final normal-image installation and physical timing acceptance remain to be recorded.
+
+### Final physical and setup acceptance
+
+The user supplied four physical taps during the final capture: 5, 19, 4 and 4 ms from sampled input through completed SPI transfer. Including one 33 ms polling interval gives 52 ms; optical panel scan-out is not measured. Earlier empty capture windows remain failed attempts, not latency evidence.
+
+The final bounded portal run passed all 20 checks, including wrong password against the saved SSID, unchanged saved configuration after failure, valid credential saving without a metrics response, and restored five-node polling. Minimum-ever heap was 33,856 B; minimum sampled largest block 23,552 B; spare portal stack 3,420 B and diagnostic stack 1,392 B. Credentials were used only in private device memory; raw logs remain ignored.
+
+Normal 1.0.0 previously passed a 60-second live run (zero errors, five nodes). Final installation restores this normal binary after QA; test controls are excluded. The 24-hour soak remains explicitly excluded.

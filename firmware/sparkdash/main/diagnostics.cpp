@@ -24,7 +24,12 @@ static void diagnostics_task(void *) {
         if (c == '\n') {
             line[used] = 0;
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
-            if (!overflow && (!strncmp(line, "TEST_URL ", 9) || !strcmp(line, "TEST_RESET"))) {
+            if (!overflow && !strcmp(line, "TEST_NAV")) {
+                navigation_self_test();
+            } else if (!overflow && !strcmp(line, "TEST_PORTAL")) {
+                portal_self_test();
+            } else if (!overflow &&
+                       (!strncmp(line, "TEST_URL ", 9) || !strcmp(line, "TEST_RESET"))) {
                 Command command{};
                 command.type = CommandType::TestUrl;
                 spark::copy_text(command.connection.url, sizeof command.connection.url,
@@ -44,7 +49,7 @@ static void diagnostics_task(void *) {
                 ESP_LOGI("diagnostics",
                          "uptime_ms=%llu nodes=%u selected=%u connected=%u requests=%u errors=%u "
                          "heap=%u largest=%u stack=%u net_stack=%u ui_stack=%u brightness=%u "
-                         "dimmed=%u dim_after=%u",
+                         "dimmed=%u dim_after=%u portal_stack=%u",
                          (unsigned long long)now_ms(), unsigned(v.count), unsigned(v.selected),
                          unsigned(v.connected), unsigned(v.requests), unsigned(v.errors),
                          unsigned(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
@@ -52,7 +57,7 @@ static void diagnostics_task(void *) {
                          unsigned(uxTaskGetStackHighWaterMark(nullptr)),
                          unsigned(network_stack_free.load()), unsigned(ui_stack_free.load()),
                          unsigned(ui_brightness.load()), unsigned(ui_dimmed.load()),
-                         unsigned(v.preferences.dim_seconds));
+                         unsigned(v.preferences.dim_seconds), unsigned(portal_stack_free.load()));
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
                 char id[193], error[385];
                 spark::percent_encode(v.node.id, id, sizeof id);

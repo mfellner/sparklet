@@ -34,6 +34,9 @@ struct View {
     spark::Preferences preferences{};
     int rssi = 0;
     uint32_t revision = 0, requests = 0, errors = 0;
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+    uint32_t navigation_sequence = 0, navigation_started = 0;
+#endif
 };
 extern std::mutex mutex;
 extern spark::Cache cache;
@@ -41,6 +44,13 @@ extern View state;
 extern QueueHandle_t commands;
 extern std::atomic<bool> wifi_connected, scan_done;
 extern std::atomic<uint32_t> network_stack_free, ui_stack_free, ui_brightness, ui_dimmed;
+extern std::atomic<uint32_t> portal_stack_free;
+#ifdef CONFIG_SPARKDASH_TEST_COMMANDS
+void portal_self_test();
+char *portal_test_buffer();
+void portal_test_buffer_release();
+void navigation_self_test();
+#endif
 uint64_t now_ms();
 void snapshot(View &);
 bool send(CommandType);
