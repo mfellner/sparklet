@@ -16,6 +16,12 @@ int main() {
     copy_text(c.ssid, sizeof c.ssid, "synthetic");
     copy_text(c.password, sizeof c.password, "test-only-123");
     assert(validate_connection(c, e, sizeof e));
+    auto corrupt = c;
+    memset(corrupt.url, 'x', sizeof corrupt.url);
+    assert(!validate_connection(corrupt, e, sizeof e));
+    corrupt = c;
+    corrupt.version = 99;
+    assert(!validate_connection(corrupt, e, sizeof e));
     Cache cache;
     const char *list = R"({"sparks":[{"id":"a","role":"head"},{"id":"b","workerNode":true}]})";
     assert(parse_list(list, strlen(list), cache, e, sizeof e));

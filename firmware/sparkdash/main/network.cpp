@@ -338,6 +338,7 @@ static void worker(void *) {
                 }
                 break;
             case CommandType::Forget: {
+                bool forgotten = false;
                 if (!nvs_ready) {
                     // Reached only after the explicit on-device Forget confirmation.
                     nvs_ready =
@@ -346,10 +347,15 @@ static void worker(void *) {
                 if (nvs_ready) {
                     nvs_handle_t h;
                     if (nvs_open("sparkdash", NVS_READWRITE, &h) == ESP_OK) {
-                        nvs_erase_key(h, "connection");
-                        nvs_commit(h);
+                        auto erased = nvs_erase_key(h, "connection");
+                        forgotten = (erased == ESP_OK || erased == ESP_ERR_NVS_NOT_FOUND) &&
+                                    nvs_commit(h) == ESP_OK;
                         nvs_close(h);
                     }
+                }
+                if (!forgotten) {
+                    status("Could not complete connection reset; retry from Settings");
+                    break;
                 }
                 has_saved = false;
                 saved = spark::Connection{};
@@ -594,6 +600,10 @@ void network_start() {
             state.preferences = p;
     } else
         state.config_error = true;
+    // Keep invalid on-flash data available for explicit recovery, but never consume
+    // its potentially unterminated strings for UI or networking.
+    if (!has_saved)
+        saved = spark::Connection{};
     spark::copy_text(state.url, sizeof state.url, saved.url);
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
