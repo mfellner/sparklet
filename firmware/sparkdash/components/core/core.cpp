@@ -335,6 +335,7 @@ void reconcile(Cache &current, const Cache &incoming) {
                 result.nodes[i] = current.nodes[j];
                 copy_text(result.nodes[i].name, sizeof fresh.name, fresh.name);
                 result.nodes[i].role = fresh.role;
+                copy_text(result.nodes[i].kind, sizeof fresh.kind, fresh.kind);
                 copy_text(result.nodes[i].worker, sizeof fresh.worker, fresh.worker);
                 copy_text(result.nodes[i].head, sizeof fresh.head, fresh.head);
                 break;

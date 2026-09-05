@@ -25,7 +25,7 @@ cd firmware/sparkdash
 idf.py build
 ```
 
-Keep `dependencies.lock` committed; dependency changes require separate review. `sdkconfig.defaults` supplies clean-build settings; generated `sdkconfig`, `managed_components` and `build` are ignored. Source provenance and the corrected schematic wiring are in `PROVENANCE.md` and `../../notes/2026-09-05-firmware-bringup.md`.
+The build enables `CONFIG_APP_REPRODUCIBLE_BUILD` to remove time/date/path variability; application, bootloader and partition binaries were byte-identical across separate build directories. Keep `dependencies.lock` committed; dependency changes require separate review. `sdkconfig.defaults` supplies clean-build settings; generated `sdkconfig`, `managed_components` and `build` are ignored. Source provenance and the corrected schematic wiring are in `PROVENANCE.md` and `../../notes/2026-09-05-firmware-bringup.md`.
 
 Rendering uses one 480 × 24 RGB565 buffer, one software draw unit, partial updates, and a bounded 64 KiB LVGL heap. The smaller stripe is the planned memory fallback after the initial 48-row build missed the memory gates with diagnostics enabled.
 
@@ -78,7 +78,7 @@ From a clean, committed checkout with ESP-IDF activated:
 python3 tools/package_release.py releases/sparkdash-v1-candidate
 ```
 
-The tool builds first, verifies the pinned SDK/target, copies generated flash arguments and binaries, includes the dependency lock and exact build configuration, and emits revision/compiler metadata plus SHA-256 checksums. It refuses an existing destination or a dirty checkout. Factory backups, credentials, NVS data and raw logs are excluded. Follow `FLASH.txt` inside the bundle; its flash arguments are relative to that directory. Packaging does not itself pass hardware acceptance gates.
+The tool builds first, verifies the pinned SDK/target, copies generated flash arguments and binaries, includes the dependency lock and exact build configuration, and emits revision/compiler metadata plus SHA-256 checksums. It also creates a ZIP with an external checksum. The standalone bundle README/FLASH.txt and bundled USB helper work from the extracted directory; SOURCE_README.md retains repository-relative development instructions. It refuses an existing destination or a dirty checkout. Factory backups, credentials, NVS data and raw logs are excluded. Follow `FLASH.txt` inside the bundle; its flash arguments are relative to that directory. Packaging does not itself pass hardware acceptance gates.
 
 For a bounded live USB measurement (opening may reboot the device):
 

@@ -109,6 +109,56 @@ int main() {
     assert(!strcmp(small, "a..."));
     display_text(small, 1, "test");
     assert(!*small);
+    // Contract cases beyond the deployed server's current shapes.
+    for (auto *role_name : {"standalone", "future-role"}) {
+        std::string role_json =
+            std::string(R"({"id":"x","role":")") + role_name + R"(","online":false,"metrics":{}})";
+        assert(parse_node(role_json.data(), role_json.size(), "x", node, e, sizeof e));
+        assert(node.role == Role::Standalone && node.online == Online::Offline);
+        assert(!node.used.valid && !node.generation.valid);
+    }
+    std::string compatibility =
+        R"({"id":"x","name":"Worker name","kind":"spark","role":"future-role","workerNode":true,"workerLabel":"Cluster worker","workerHeadId":"head1","online":true,"metrics":{}})";
+    assert(parse_node(compatibility.data(), compatibility.size(), "x", node, e, sizeof e));
+    assert(node.role == Role::Worker && !strcmp(node.worker, "Cluster worker") &&
+           !strcmp(node.head, "head1") && !strcmp(node.kind, "spark"));
+    std::string fallback_json =
+        R"({"id":"x","online":true,"metrics":{"gpu":{"vram":{"used":0}},"unifiedMemory":{"used":5,"total":9,"available":0,"percentage":10},"storage":[{"device":"nvme0n1p2","used":3,"total":7}],"network":{"interfaces":[{"name":"disabled","disabled":true,"operstate":"up","rxSpeed":3},{"name":"down","operstate":"down","rxSpeed":4},{"name":"enabled","operstate":"up","rxSpeed":5}]}}})";
+    assert(parse_node(fallback_json.data(), fallback_json.size(), "x", node, e, sizeof e));
+    assert(node.used.valid && node.used.value == 0 && node.total.value == 9 &&
+           node.available.valid && node.available.value == 0 && node.percent.value == 10);
+    assert(node.disk_used.value == 3 && !strcmp(node.iface, "enabled") && node.rx.value == 5);
+    std::string long_name(94, 'a'), long_model(159, 'm');
+    std::string labels = R"({"id":"x","name":")" + long_name + "€" +
+                         R"(","online":true,"metrics":{"llm":[{"available":true,"modelId":")" +
+                         long_model + "€" + R"("}]}})";
+    assert(parse_node(labels.data(), labels.size(), "x", node, e, sizeof e));
+    assert(!strcmp(node.name, long_name.c_str()) && !strcmp(node.model, long_model.c_str()));
+    Cache changes;
+    std::string first = R"({"sparks":[{"id":"a","kind":"old"},{"id":"b"}]})";
+    assert(parse_list(first.data(), first.size(), changes, e, sizeof e));
+    changes.selected = 1;
+    std::string added = R"({"sparks":[{"id":"a","kind":"new"},{"id":"b"},{"id":"c"}]})";
+    Cache next_list;
+    assert(parse_list(added.data(), added.size(), next_list, e, sizeof e));
+    reconcile(changes, next_list);
+    assert(changes.count == 3 && changes.selected == 1 && !changes.nodes[2].received);
+    assert(!strcmp(changes.nodes[0].kind, "new"));
+    std::string removed = R"({"sparks":[{"id":"a"},{"id":"c"}]})";
+    assert(parse_list(removed.data(), removed.size(), next_list, e, sizeof e));
+    reconcile(changes, next_list);
+    assert(changes.selected == 1 && !strcmp(changes.nodes[1].id, "c"));
+    std::string empty = R"({"sparks":[]})";
+    assert(parse_list(empty.data(), empty.size(), next_list, e, sizeof e));
+    reconcile(changes, next_list);
+    assert(changes.count == 0 && changes.selected == 0);
+    std::string overlong_id = R"({"sparks":[{"id":")" + std::string(65, 'i') + R"("}]})";
+    assert(!parse_list(overlong_id.data(), overlong_id.size(), changes, e, sizeof e));
+    std::string duplicated_overflow = many;
+    duplicated_overflow.replace(duplicated_overflow.rfind("n16"), 3, "n0");
+    assert(
+        !parse_list(duplicated_overflow.data(), duplicated_overflow.size(), changes, e, sizeof e));
+    assert(changes.count == 0);
     Scheduler q;
     auto w = q.next(0, 2, 0);
     assert(w.kind == Scheduler::Kind::List);
