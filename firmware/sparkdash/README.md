@@ -41,7 +41,7 @@ Read the platform's [interaction instructions](https://github.com/mfellner/esp32
 uv run scripts/esp32_serial.py list
 ```
 
-Select USB serial `D4:05:92:B9:04:28`, VID/PID `303a:1001`. Close monitors first. A verified full factory backup already exists in ignored `backups/`, with checksum/metadata recorded in the bring-up notes. Do not overwrite it.
+Select USB serial `D4:05:92:B9:04:28`, VID/PID `303a:1001`. Close monitors first. A verified full factory backup already exists in the platform checkout's ignored `backups/`, with checksum/metadata recorded in the bring-up notes. Do not overwrite it.
 
 The device must already use the platform layout. A device still on the single-app layout (factory image or Sparklet 1.0.0) needs the one-time migration from the [platform repository](https://github.com/mfellner/esp32-playground#build-and-install) first. After activating the SDK, flash from this firmware directory using the freshly discovered port:
 

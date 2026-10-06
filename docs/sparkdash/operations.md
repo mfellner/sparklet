@@ -123,7 +123,7 @@ If the unresponsive-USB condition recurs, the next step is to physically power t
 
 ## Backup, rollback and incident records
 
-The original factory backup is a verified 16,777,216-byte image with adjacent device/time/tool/SHA-256 metadata in ignored `backups/`. A separate full custom snapshot preserves the then-current configuration. Their actual recovery procedure was tested; follow the platform's [recovery procedure](https://github.com/mfellner/esp32-playground/blob/main/docs/recovery.md), including fresh backup, identity, size and checksum checks, before any full-image replacement.
+The original factory backup is a verified 16,777,216-byte image with adjacent device/time/tool/SHA-256 metadata in the platform checkout's ignored `backups/` (moved there from this repository on 2026-10-06). A separate full custom snapshot preserves the then-current configuration. Their actual recovery procedure was tested; follow the platform's [recovery procedure](https://github.com/mfellner/esp32-playground/blob/main/docs/recovery.md), including fresh backup, identity, size and checksum checks, before any full-image replacement.
 
 A rollback to an earlier Sparklet slot bundle normally preserves current NVS; a full-image rollback restores the NVS contained in that snapshot. Keep versioned configuration compatibility in mind when changing struct layouts. Never overwrite the only factory backup, automatically erase all NVS on a parse error, burn eFuses, or bypass unreadable flash restrictions.
 
