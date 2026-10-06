@@ -1,7 +1,14 @@
 dependencies:
   idf: '==5.5.3'
-  lvgl/lvgl: '^9.5.0'
-  espressif/esp_lvgl_adapter: '^0.3.0'
-  espressif/esp_lcd_sh8601: '^1.0.0'
-  waveshare/esp_lcd_touch_cst9217: '^1.0.4'
+  lvgl/lvgl: '~9.5.0'
   espressif/mdns: '^1.8.2'
+  # Platform components (https://github.com/mfellner/esp32-playground). For local development,
+  # temporarily replace git/version with `override_path: ../../../../esp32-playground/components/<name>`.
+  mfellner/board:
+    git: https://github.com/mfellner/esp32-playground.git
+    path: components/board
+    version: v0.1.0
+  mfellner/app_switch:
+    git: https://github.com/mfellner/esp32-playground.git
+    path: components/app_switch
+    version: v0.1.0

@@ -199,7 +199,7 @@ dependencies:
       type: service
     version: 1.1.0
   espressif/libpng:
-    component_hash: b8c715f76b79a127d9b1b632e09acc23e7b29d2194af890a837adc2be5a2804b
+    component_hash: d094357a329f78668629d7c9656064b2b0123196eb6d25ca77db3782e0752480
     dependencies:
     - name: idf
       require: private
@@ -211,7 +211,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 1.6.58~1
+    version: 1.6.58~2
   espressif/mdns:
     component_hash: 3ba256ac95e07c274be53cbd73f06cb846c403b61e8fbdf1be57bdb79db7a63e
     dependencies:
@@ -243,6 +243,34 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 9.5.0
+  mfellner/app_switch:
+    component_hash: 0dde6a4a56a6cb45a7ea749cd05f3c7fb979a82aa1200854db65e5ee61fafc4b
+    dependencies:
+    - name: idf
+      version: ==5.5.3
+    source:
+      git: https://github.com/mfellner/esp32-playground.git
+      path: components/app_switch
+      type: git
+    version: 3da35f8e5bd11ba0c592e0dea3205524f1a533c0
+  mfellner/board:
+    component_hash: 2db1381aee5da5599916c531d0ef82309f69618362ab2f2b0943bae215733250
+    dependencies:
+    - name: idf
+      version: ==5.5.3
+    - name: lvgl/lvgl
+      version: ~9.5.0
+    - name: espressif/esp_lvgl_adapter
+      version: ^0.3.0
+    - name: espressif/esp_lcd_sh8601
+      version: ^1.0.0
+    - name: waveshare/esp_lcd_touch_cst9217
+      version: ^1.0.4
+    source:
+      git: https://github.com/mfellner/esp32-playground.git
+      path: components/board
+      type: git
+    version: 3da35f8e5bd11ba0c592e0dea3205524f1a533c0
   waveshare/esp_lcd_touch_cst9217:
     component_hash: 27a00845832b7987cacf4c4125cbed5415d940987583065b01870ac080930856
     dependencies:
@@ -258,12 +286,11 @@ dependencies:
       type: service
     version: 1.0.4
 direct_dependencies:
-- espressif/esp_lcd_sh8601
-- espressif/esp_lvgl_adapter
 - espressif/mdns
 - idf
 - lvgl/lvgl
-- waveshare/esp_lcd_touch_cst9217
-manifest_hash: ee09c995229ac71415646ef4c8a05e9800507b394059dfcbffe2bf5662b98a47
+- mfellner/app_switch
+- mfellner/board
+manifest_hash: 6d762a146441357440f7d9d2dcbc2930dcc3f30882bb7f058f6f2df4f8543c23
 target: esp32c6
 version: 2.0.0

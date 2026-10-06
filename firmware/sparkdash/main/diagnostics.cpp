@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "app_switch.h"
 #include "board.hpp"
 #include "driver/usb_serial_jtag.h"
 #include "esp_heap_caps.h"
@@ -31,6 +32,8 @@ static void diagnostics_task(void *) {
                 rotation_self_test();
             } else if (!overflow && !strcmp(line, "TEST_NAV")) {
                 navigation_self_test();
+            } else if (!overflow && !strcmp(line, "TEST_OPEN_LAUNCHER")) {
+                ESP_LOGI("qa_launcher", "result=%s", esp_err_to_name(app_switch_open_launcher()));
             } else if (!overflow && !strcmp(line, "TEST_PORTAL")) {
                 portal_self_test();
             } else if (!overflow &&

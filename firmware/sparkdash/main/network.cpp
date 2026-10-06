@@ -354,11 +354,8 @@ static void worker(void *) {
                 break;
             case CommandType::Forget: {
                 bool forgotten = false;
-                if (!nvs_ready) {
-                    // Reached only after the explicit on-device Forget confirmation.
-                    nvs_ready =
-                        nvs_flash_erase_partition("nvs") == ESP_OK && nvs_flash_init() == ESP_OK;
-                }
+                // The default NVS partition is shared with the launcher and other apps, so only
+                // Sparklet's own key is erased. A damaged partition is reset from the launcher.
                 if (nvs_ready) {
                     nvs_handle_t h;
                     if (nvs_open("sparkdash", NVS_READWRITE, &h) == ESP_OK) {
@@ -369,7 +366,8 @@ static void worker(void *) {
                     }
                 }
                 if (!forgotten) {
-                    status("Could not complete connection reset; retry from Settings");
+                    status(nvs_ready ? "Could not complete connection reset; retry from Settings"
+                                     : "Storage unavailable; reset settings from the launcher");
                     break;
                 }
                 has_saved = false;

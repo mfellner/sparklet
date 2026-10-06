@@ -1,6 +1,6 @@
 # sparkDash companion
 
-Read-only native dashboard for the Waveshare ESP32-C6-Touch-AMOLED-2.16. Version 1.0.0 provides the v1 dashboard scope. Bounded device and host validation are recorded in the [current validation report](../../docs/sparkdash-validation.md).
+Read-only native dashboard for the Waveshare ESP32-C6-Touch-AMOLED-2.16. Version 1.1.0 runs as the `sparklet` app (OTA slot `ota_0` at `0x220000`) of the [esp32-playground platform](https://github.com/mfellner/esp32-playground), next to its launcher; 1.0.0 was the standalone v1 image. Bounded device and host validation are recorded in the [current validation report](../../docs/sparkdash-validation.md).
 
 The [complete documentation](../../docs/sparkdash/README.md) covers [daily use](../../docs/sparkdash/user-guide.md), [architecture/API](../../docs/sparkdash/architecture.md), [development](../../docs/sparkdash/development.md), [testing](../../docs/sparkdash/testing.md), and [release/troubleshooting](../../docs/sparkdash/operations.md). This README is a quick command reference.
 
@@ -13,9 +13,9 @@ The [complete documentation](../../docs/sparkdash/README.md) covers [daily use](
 
 Both codes are generated locally. No credentials go to an external QR service. Manual setup details remain visible. The setup password changes between sessions/reboots; if joining fails, forget the phone's saved SparkDash network and scan the current code again. QR scanning does not itself repair a radio/association failure.
 
-Swipe left/right or tap arrows to select a node. Details scroll vertically. Settings controls brightness, dimming, automatic rotation, and connection reconfiguration. Auto-rotate defaults on; Save display persists the switch, and disabling it restores upright. The first touch after dimming wakes the screen without activating a control. Connection setup disables dimming so the QR remains readable.
+Swipe left/right or tap arrows to select a node. Details scroll vertically. Settings controls brightness, dimming, automatic rotation, and connection reconfiguration; **Apps** opens the launcher. KEY (short press) and BOOT (1 s hold) also open the launcher, and a PWR short press dims or wakes the screen. Auto-rotate defaults on; Save display persists the switch, and disabling it restores upright. The first touch after dimming wakes the screen without activating a control. Connection setup disables dimming so the QR remains readable.
 
-The server is unchanged. This client uses only `/api/sparks` and `/api/sparks/{id}/metrics`, over HTTP. HTTPS, enterprise/open Wi-Fi, remote actions, history and OTA are not supported. “Received” measures response receipt age, not collector sample age.
+The server is unchanged. This client uses only `/api/sparks` and `/api/sparks/{id}/metrics`, over HTTP. HTTPS, enterprise/open Wi-Fi, remote actions, history and over-the-air updates are not supported. “Received” measures response receipt age, not collector sample age.
 
 ## Build
 
@@ -27,13 +27,15 @@ cd firmware/sparkdash
 idf.py build
 ```
 
-The build enables `CONFIG_APP_REPRODUCIBLE_BUILD` to remove time/date/path variability; application, bootloader and partition binaries were byte-identical across separate build directories. Keep `dependencies.lock` committed; dependency changes require separate review. `sdkconfig.defaults` supplies clean-build settings; generated `sdkconfig`, `managed_components` and `build` are ignored. Source provenance and the corrected schematic wiring are in `PROVENANCE.md` and `../../notes/2026-09-05-firmware-bringup.md`.
+`CMakeLists.txt` applies the platform contract `sdkconfig.defaults.platform` before `sdkconfig.defaults` and calls `platform_app_slot(sparklet)` from the platform's `mfellner/app_switch` component. Configuration fails unless `partitions.csv` and the platform settings match the platform's `components/app_switch/layout/` exactly; copy those files unchanged. Board support comes from the platform's `mfellner/board` component. For local component work `main/idf_component.yml` may use `override_path`; commits must use the pinned git version.
+
+The build enables `CONFIG_APP_REPRODUCIBLE_BUILD` to remove time/date/path variability; application, bootloader and partition binaries were byte-identical across separate build directories. Keep `dependencies.lock` committed; dependency changes require separate review. `sdkconfig.defaults` supplies clean-build settings; generated `sdkconfig`, `managed_components` and `build` are ignored. Source provenance and the corrected schematic wiring are in `PROVENANCE.md` and `../../notes/2026-09-05-firmware-bringup.md`; board-generic notes are in the [platform repository](https://github.com/mfellner/esp32-playground).
 
 Rendering uses a 480 × 12 RGB565 draw buffer and an equally sized DMA rotation buffer (23,040 bytes total), one software draw unit, partial updates, and a bounded 64 KiB LVGL heap. This preserves the former 24-row buffer budget without a full-screen framebuffer.
 
 ## Flash and recover
 
-Read `../../docs/interaction.md` before hardware operations. Enumerate from the repository root:
+Read the platform's [interaction instructions](https://github.com/mfellner/esp32-playground/blob/main/docs/interaction.md) before hardware operations. Enumerate from the repository root:
 
 ```sh
 uv run scripts/esp32_serial.py list
@@ -41,15 +43,15 @@ uv run scripts/esp32_serial.py list
 
 Select USB serial `D4:05:92:B9:04:28`, VID/PID `303a:1001`. Close monitors first. A verified full factory backup already exists in ignored `backups/`, with checksum/metadata recorded in the bring-up notes. Do not overwrite it.
 
-After activating the SDK, flash from this firmware directory using the freshly discovered port:
+The device must already use the platform layout. A device still on the single-app layout (factory image or Sparklet 1.0.0) needs the one-time migration from the [platform repository](https://github.com/mfellner/esp32-playground#build-and-install) first. After activating the SDK, flash from this firmware directory using the freshly discovered port:
 
 ```sh
-idf.py -p /dev/cu.usbmodem2101 flash
+idf.py -p /dev/cu.usbmodem2101 sparklet-flash
 ```
 
-This uses the project's generated partition/flash arguments and preserves NVS. Capture boot logs with the bounded root helper; opening USB can reset the device. No OTA partitions or filesystem are present. Forgetting credentials requires on-device confirmation.
+This writes only `build/sparklet-flash_args` (`0x220000 sparkdash.bin`) into the `sparklet` slot; NVS, the launcher, the bootloader and the boot selection are preserved. Alternatively, from the repository root with a platform checkout at `PLATFORM`, `uv run PLATFORM/tools/device.py install sparklet firmware/sparkdash/build` also checks the device's partition table first. Never use `idf.py flash` or `app-flash`: they would overwrite the launcher and reset the boot selection, so this project makes them fail with a guard message. Capture boot logs with the bounded root helper; opening USB can reset the device. Forgetting credentials requires on-device confirmation and erases only Sparklet's `connection` key, because NVS is shared with the launcher and other apps.
 
-Factory restoration is a full-flash write of the verified original backup at address zero, using the pinned esptool 5.4.0 and the discovered device. Verify its SHA-256 and exact size before any restore. A full factory restore and a return to the saved sparkDash snapshot were physically verified on 2026-09-05; see `../../docs/recovery.md`. A restore overwrites current settings. Never force protection overrides or change eFuses.
+Factory restoration is a full-flash write of the verified original backup at address zero, using the pinned esptool 5.4.0 and the discovered device. It also removes the launcher and platform layout. Verify its SHA-256 and exact size before any restore. A full factory restore and a return to the saved sparkDash snapshot were physically verified on 2026-09-05; see the platform's [recovery procedure](https://github.com/mfellner/esp32-playground/blob/main/docs/recovery.md). A restore overwrites current settings. Never force protection overrides or change eFuses.
 
 ## Test
 
@@ -62,7 +64,7 @@ ctest --test-dir tests/host/build --output-on-failure
 python3 tests/host/test_http_fixtures.py
 ```
 
-Shared core tests use ASan/UBSan by default. The HTTP fixture tests exercise a real local HTTP server and the shared parser, not the ESP-IDF HTTP transport. To expose synthetic test cases to the board on a controlled LAN:
+Shared core tests (`core_tests`, `portal_address_tests`, `preferences_tests`) use ASan/UBSan by default; orientation tests moved to the platform repository with the board component. The HTTP fixture tests exercise a real local HTTP server and the shared parser, not the ESP-IDF HTTP transport. To expose synthetic test cases to the board on a controlled LAN:
 
 ```sh
 python3 tools/mock_sparkdash.py --host 0.0.0.0 --port 5556
@@ -70,17 +72,17 @@ python3 tools/mock_sparkdash.py --host 0.0.0.0 --port 5556
 
 Use the host's LAN IPv4 address and a scenario prefix such as `/chunked`, `/stall`, `/oversized`, or `/rate` as the configured server base path. Do not disrupt production DGX services or the router for failure testing.
 
-USB diagnostics accept newline-terminated `STATUS`, `NEXT`, and `PREV`. They expose counters and memory, not credentials, and are not a shell. Each physical, transport, live-data and performance check has its own evidence requirements; see the validation report for completed and pending gates. The user explicitly excluded the 24-hour soak; this release makes no 24-hour stability claim. See the bring-up notes for tested facts.
+USB diagnostics accept newline-terminated `STATUS`, `NEXT`, and `PREV`. QA builds add test commands, including `TEST_OPEN_LAUNCHER`. They expose counters and memory, not credentials, and are not a shell. Each physical, transport, live-data and performance check has its own evidence requirements; see the validation report for completed and pending gates. The user explicitly excluded the 24-hour soak; this release makes no 24-hour stability claim. See the bring-up notes for tested facts.
 
 ## Create a distributable bundle
 
 From a clean, committed checkout with ESP-IDF activated:
 
 ```sh
-python3 tools/package_release.py releases/sparkdash-v1-candidate
+python3 tools/package_release.py releases/sparklet-candidate
 ```
 
-The tool builds first, verifies the pinned SDK/target, copies generated flash arguments and binaries, includes the dependency lock and exact build configuration, and emits revision/compiler metadata plus SHA-256 checksums. It also creates a ZIP with an external checksum. The standalone bundle README/FLASH.txt and bundled USB helper work from the extracted directory; SOURCE_README.md retains repository-relative development instructions. It refuses an existing destination or a dirty checkout. Factory backups, credentials, NVS data and raw logs are excluded. Follow `FLASH.txt` inside the bundle; its flash arguments are relative to that directory. Packaging does not itself pass hardware acceptance gates.
+The tool builds first, verifies the pinned SDK/target and that `build/sparklet-flash_args` writes `sparkdash.bin` at `0x220000`, copies the application, its slot flash arguments, the generated partition table and `project_description.json`, includes the dependency lock and exact build configuration, and emits revision/compiler metadata plus SHA-256 checksums. It also creates a ZIP with an external checksum. The standalone bundle README/FLASH.txt and bundled USB helper work from the extracted directory; SOURCE_README.md retains repository-relative development instructions. It refuses an existing destination or a dirty checkout. Factory backups, credentials, NVS data and raw logs are excluded. Follow `FLASH.txt` inside the bundle: `device.py install sparklet` accepts the extracted directory as a build directory, and its flash arguments are relative to that directory. The bundle updates only the Sparklet slot of a migrated device. Packaging does not itself pass hardware acceptance gates.
 
 For a bounded live USB measurement (opening may reboot the device):
 
@@ -98,7 +100,13 @@ This verifies continued five-node polling, request-error stability, sampled inte
 idf.py -C firmware/sparkdash -B firmware/sparkdash/build-qa -D SDKCONFIG="$PWD/firmware/sparkdash/sdkconfig.qa" build
 ```
 
-Flash that project's generated arguments to the discovered board, then run from the root with this Mac's LAN IPv4:
+Flash it to the discovered board's Sparklet slot:
+
+```sh
+idf.py -C firmware/sparkdash -B firmware/sparkdash/build-qa -D SDKCONFIG="$PWD/firmware/sparkdash/sdkconfig.qa" -p PORT sparklet-flash
+```
+
+Then run from the root with this Mac's LAN IPv4:
 
 ```sh
 uv run tools/check_http_device.py --host MAC_LAN_IP --output logs/http-device.json

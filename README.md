@@ -10,6 +10,8 @@ One node at a time. Real metrics from your existing server. No server changes.
 
 > **V1 status:** phone setup and live five-node operation have been demonstrated on the actual board. V1 implements the daily-use dashboard and has passed bounded setup, transport, memory and interaction checks. The earlier USB stall recovered after physical reconnection; its cause was not isolated. See the [validation report](docs/sparkdash-validation.md). The 24-hour soak test is explicitly excluded.
 
+> **1.1.0 (source):** Sparklet now runs as one app next to a launcher on the [esp32-playground platform](https://github.com/mfellner/esp32-playground). Migration, switching and the new buttons were checked on the actual board; see [Launcher platform](docs/sparkdash-validation.md#launcher-platform--2026-10-06).
+
 ## On the real device
 
 These close-ups are cropped from real device photographs of an earlier development build. The desk, hands and cable are outside the crop; the photographed UI is unchanged.
@@ -52,11 +54,11 @@ Sparklet is read-only. It does not shut down, wake, update or otherwise control 
 | Power | Primarily USB |
 | Server | Existing sparkDash HTTP API; default `http://dgx01.local:5555` |
 
-This firmware targets that exact board. Its schematic-corrected display CS and touch interrupt are **GPIO15 and GPIO5**, respectively. Do not reuse an ESP32-S3 or another display-size pin map. [Hardware details](docs/hardware.md) · [Provenance](firmware/sparkdash/PROVENANCE.md)
+This firmware targets that exact board. Its schematic-corrected display CS and touch interrupt are **GPIO15 and GPIO5**, respectively. Do not reuse an ESP32-S3 or another display-size pin map. [Hardware details](https://github.com/mfellner/esp32-playground/blob/main/docs/hardware.md) · [Provenance](firmware/sparkdash/PROVENANCE.md)
 
 ## Get started
 
-Download the [v1.0.0 firmware bundle and checksums](https://github.com/mfellner/sparklet/releases/tag/v1.0.0), or follow the source build instructions below.
+Sparklet 1.1.0 requires the platform layout described in [Running with the launcher](#running-with-the-launcher). The [v1.0.0 firmware bundle and checksums](https://github.com/mfellner/sparklet/releases/tag/v1.0.0) is a standalone single-app image: flashing it replaces the platform layout, including the launcher, so it is only a downgrade path.
 
 With firmware installed:
 
@@ -68,6 +70,31 @@ With firmware installed:
 The temporary setup password changes each session. Saved credentials survive ordinary firmware updates. The firmware currently keeps the on-device **sparkDash** label and the **SparkDash-XXXX** setup SSID; Sparklet is the project/repository name.
 
 [Full user guide](docs/sparkdash/user-guide.md) · [Connection troubleshooting](docs/sparkdash/operations.md#troubleshooting)
+
+## Running with the launcher
+
+The [esp32-playground platform](https://github.com/mfellner/esp32-playground) splits the 16 MiB flash into a launcher (factory partition at `0x20000`), the `sparklet` app slot (`ota_0`, 4 MiB at `0x220000`), a reserved `hermes` slot and shared NVS. The platform bootloader starts the selected app; the launcher shows one tile per installed app. Sparklet's saved Wi-Fi, server and display settings stay in NVS namespace `sparkdash` and survive app switches and Sparklet updates.
+
+| Input | Action in Sparklet |
+| --- | --- |
+| Settings → **Apps** | Opens the launcher |
+| **KEY** short press | Opens the launcher |
+| **BOOT** held for 1 s | Opens the launcher |
+| **PWR** short press | Dims the screen, or wakes it |
+| **KEY** held while the board resets | The platform bootloader starts the launcher instead of Sparklet |
+
+In the launcher, tap the Sparklet tile or press KEY to return. Unplugging and replugging resumes Sparklet if it was running; after leaving through the launcher, a power cycle shows the launcher. The launcher's **Device → Reset settings** erases the saved settings of every app, including Sparklet's connection. Holding PWR for about 6 s is configured to power the board off through the PMIC; that was not exercised.
+
+To install:
+
+1. A device not yet on the platform layout, such as one running Sparklet 1.0.0, must first be migrated with the platform repository. Follow its [migration procedure](https://github.com/mfellner/esp32-playground#build-and-install) (fresh full backup, `tools/device.py migrate`). Saved Sparklet settings were preserved by the observed migration.
+2. Build Sparklet (below), then write only the Sparklet slot from a checkout of the platform repository at `PLATFORM`:
+
+```sh
+uv run PLATFORM/tools/device.py install sparklet firmware/sparkdash/build
+```
+
+`device.py` compares the build's partition table with the one on the device, refuses a device that has not been migrated, and never writes NVS, the launcher or the bootloader.
 
 ## Build and test
 
@@ -82,7 +109,15 @@ ctest --test-dir tests/host/build --output-on-failure
 python3 tests/host/test_http_fixtures.py
 ```
 
-The dependency lock and build defaults are committed. Shared-code tests use address/undefined-behavior sanitizers. Two separate build directories produced identical candidate firmware binaries; that is separate from runtime acceptance.
+The dependency lock and build defaults are committed. The platform contract `sdkconfig.defaults.platform` is applied before `sdkconfig.defaults`, and `partitions.csv` is the platform's layout; both must stay byte-identical to the platform copies or configuration fails. Shared-code tests use address/undefined-behavior sanitizers. Two separate build directories produced identical candidate firmware binaries; that is separate from runtime acceptance.
+
+Flash only the Sparklet slot, from `firmware/sparkdash` with the discovered port:
+
+```sh
+idf.py -p PORT sparklet-flash
+```
+
+`idf.py flash` and `app-flash` deliberately fail in this project: they would overwrite the launcher and reset the boot selection.
 
 For hardware discovery, install [uv](https://docs.astral.sh/uv/) and run:
 
@@ -90,7 +125,7 @@ For hardware discovery, install [uv](https://docs.astral.sh/uv/) and run:
 uv run scripts/esp32_serial.py list
 ```
 
-Read the [build/flash guide](firmware/sparkdash/README.md) and [USB instructions](docs/interaction.md) before flashing. Preserve a verified full backup, select the correct USB identity, and use generated flash arguments. Opening USB serial can reboot the display. Factory and custom-snapshot restoration have been physically tested; backups remain private and outside Git.
+Read the [build/flash guide](firmware/sparkdash/README.md) and the platform's [USB instructions](https://github.com/mfellner/esp32-playground/blob/main/docs/interaction.md) before flashing. Preserve a verified full backup, select the correct USB identity, and use generated flash arguments. Opening USB serial can reboot the display. Factory and custom-snapshot restoration have been physically tested; backups remain private and outside Git.
 
 ## Documentation
 
@@ -104,13 +139,13 @@ Start with the [complete documentation index](docs/sparkdash/README.md).
 | [Testing](docs/sparkdash/testing.md) | Host tests, real ESP32 failure tests, live API comparison and physical acceptance |
 | [Release and operations](docs/sparkdash/operations.md) | Bundles, checksums, flashing, diagnostics and troubleshooting |
 | [Validation status](docs/sparkdash-validation.md) | Verified results, failed checks and remaining work |
-| [Recovery](docs/recovery.md) | Verified full-flash backup and restore procedure |
+| [Platform](https://github.com/mfellner/esp32-playground) | Launcher, flash layout, board hardware, USB rules and [recovery](https://github.com/mfellner/esp32-playground/blob/main/docs/recovery.md) |
 | [Bring-up notes](notes/2026-09-05-firmware-bringup.md) | Hardware discoveries and implementation evidence |
 
 ## Project layout
 
 ```text
-firmware/sparkdash/     ESP-IDF application, board wrapper and shared core
+firmware/sparkdash/     ESP-IDF application and shared core (board code comes from the platform)
 scripts/               USB discovery and bounded serial monitoring
 tests/host/           Shared-code sanitizer and HTTP fixture tests
 tools/                Mock server, device validators and release packager
@@ -122,6 +157,6 @@ Generated builds, releases, raw logs, flash backups and local configuration are 
 
 ## Scope and credits
 
-V1 focuses on the everyday node-card experience. OTA, charts/history, automatic slideshows, MQTT, Home Assistant, remote actions, audio, IMU, SD storage and battery management are outside this release.
+V1 focuses on the everyday node-card experience. Over-the-air updates, charts/history, automatic slideshows, MQTT, Home Assistant, remote actions, audio, SD storage and battery management are outside this release. The IMU is used only for automatic rotation.
 
 Built around the [sparkDash](https://github.com/MiaAI-Lab/sparkDash) API and the [Waveshare board integration](https://github.com/waveshareteam/ESP32-C6-Touch-AMOLED-2.16), with ESP-IDF, LVGL and their managed components. [awesome-esp](https://github.com/agucova/awesome-esp) informed the initial exploration. The [research notes](docs/sparkdash-feasibility.md) and [source provenance](firmware/sparkdash/PROVENANCE.md) record the underlying references and license limitations; no blanket license grant for all upstream material is implied.
