@@ -25,13 +25,14 @@ CMake uses the SDK's cJSON source and the actual firmware core. Address and unde
 | --- | --- |
 | `core_tests` | Roles/worker compatibility, optional numbers and valid zero, unified memory, root/interface/backend choice, URL/form and versioned-record validation, UTF-8 bounds, duplicate/oversized IDs, body/depth/arena limits, matching IDs, list reconciliation, formatting and scheduling |
 | `portal_address_tests` | Actual setup-address guard, IPv4 and mapped IPv6, other/truncated addresses and a host dual-stack socket |
+| `preferences_tests` | Explicit v1/v2 preference record encoding and decoding |
 | `test_http_fixtures.py` | Local HTTP server response modes exercised with host transport/shared parser |
 
 Host fixtures are synthetic. Keep real API captures in ignored files, not committed tests. For changed metric rules, adjust independently expected values; avoid assertions that merely repeat the implementation.
 
 ## Bounded live-device baseline
 
-Read [interaction instructions](../interaction.md), discover the known board, close other monitors, and ensure the normal firmware is installed. Opening the USB connection can reset the device.
+Read the platform's [interaction instructions](https://github.com/mfellner/esp32-playground/blob/main/docs/interaction.md), discover the known board, close other monitors, and ensure the normal firmware is installed. Opening the USB connection can reset the device.
 
 ```sh
 uv run scripts/esp32_serial.py list
@@ -60,7 +61,7 @@ The check requires the configured timeout to have elapsed, at least two samples 
 
 ## Controlled HTTP transport on the ESP32
 
-Build/flash the isolated QA configuration described in [development](development.md). Use this Mac's LAN IPv4 address reachable from the display. The runner starts its own synthetic server on port 5556; do not start a second process on that port.
+Build the isolated QA configuration described in [development](development.md) and flash it with `sparklet-flash`. Use this Mac's LAN IPv4 address reachable from the display. The runner starts its own synthetic server on port 5556; do not start a second process on that port.
 
 ```sh
 uv run tools/check_http_device.py --host MAC_LAN_IP --output logs/http-device-new.json
@@ -145,7 +146,7 @@ For a new release, repeat the affected acceptance gates:
 4. Verify the final bundle's checksums, source/SDK/lock metadata, generated flash references and normal-build configuration.
 5. Update the validation report with exact evidence, remaining limitations and the explicit soak exclusion.
 
-Full factory restore followed by return to a saved custom image has already been physically exercised. See [recovery](../recovery.md); repeat only if a changed recovery-relevant artifact or failure warrants it.
+Full factory restore followed by return to a saved custom image has already been physically exercised. See the platform's [recovery procedure](https://github.com/mfellner/esp32-playground/blob/main/docs/recovery.md); repeat only if a changed recovery-relevant artifact or failure warrants it.
 
 ## Portal and display timing validators
 
@@ -162,9 +163,12 @@ The UI validator automatically exercises 20 next/previous selections and require
 
 ## Automatic rotation
 
-`rotation_tests` runs with the host suites above. It covers four-angle RGB565
-transforms, inverse touch coordinates, even panel rectangles, settled versus
-ambiguous acceleration, sample interruptions, and v1/v2 preference records.
+`preferences_tests` runs with the host suites above and covers v1/v2 preference
+records. Since 1.1.0 the orientation detector and the RGB565/touch/rectangle
+transforms live in the platform's `mfellner/board` component; their host tests
+(four-angle transforms, inverse touch coordinates, even panel rectangles, settled
+versus ambiguous acceleration, sample interruptions) moved to the
+[platform repository](https://github.com/mfellner/esp32-playground).
 
 With the isolated QA firmware installed, run:
 
@@ -185,7 +189,8 @@ wake. Check Back discards an unsaved switch, Save applies it, disabling restores
 upright, and both setting values persist across reboot. Hold a finger down while
 turning: rotation must wait until release. Leave the device flat/diagonal to check
 it holds its previous orientation. Reinstall normal firmware afterward; the
-`TEST_ROTATION` command and raw accelerometer logs must not ship in that image.
+`TEST_ROTATION` command and raw accelerometer logs (`qa_imu`, via
+`board::set_acceleration_observer`) must not ship in that image.
 
 The QA Settings test uses the actual on-device widgets and Save callback. It checks
 unsaved controls survive rotation, Back leaves the committed preference unchanged,
@@ -201,3 +206,17 @@ The second run requires an observed boot and saved-off readback before saving on
 After flashing normal firmware, verify STATUS reports `auto_rotate=1`. This is
 firmware/UI-event and NVS validation, not a substitute for physical touch testing.
 `TEST_PREFS_ON` and `TEST_PREFS_OFF` exist only in QA builds.
+
+## Launcher platform
+
+These checks need the platform launcher installed (see the [platform repository](https://github.com/mfellner/esp32-playground)) and change only the boot selection, not saved settings.
+
+With QA builds of both the launcher and Sparklet installed, the platform's switch checker drives bounded USB round trips: the launcher's `TEST_BOOT` starts Sparklet and Sparklet's `TEST_OPEN_LAUNCHER` returns. It needs one USB session; opening it may reset the board.
+
+```sh
+uv run PLATFORM/tools/check_switch.py --app sparklet --cycles 20 --output logs/switch-check-new.json
+```
+
+It refuses an existing output path. The checker measures USB log timing, not optical switching time.
+
+Physically check, with the outcome recorded per item: Settings → **Apps** opens the launcher; a KEY short press opens it; a 1 s BOOT hold opens it without entering download mode; a PWR short press dims and wakes; the Sparklet tile and KEY in the launcher start Sparklet; KEY held at reset starts the launcher while the boot selection stays on Sparklet. After installing, verify that `idf.py flash` stops with the platform guard message and that the launcher still starts. `TEST_OPEN_LAUNCHER` exists only in QA builds.

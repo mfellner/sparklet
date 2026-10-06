@@ -1,6 +1,6 @@
 # sparkDash validation status
 
-Updated 2026-09-06. The v1 table below records the original release; automatic-rotation results follow it. Sparklet 1.0.0 completed the bounded v1 acceptance checks below. The 24-hour soak was explicitly excluded and was not performed.
+Updated 2026-10-06. The v1 table below records the original release; automatic-rotation and launcher-platform results follow it. Sparklet 1.0.0 completed the bounded v1 acceptance checks below. The 24-hour soak was explicitly excluded and was not performed.
 
 | Gate | Evidence / status |
 | --- | --- |
@@ -53,3 +53,35 @@ sideways. At the saved 120-second timeout it dimmed to 10% while polling continu
 QA controls/raw sensor logging are absent from the normal binary. Application
 SHA-256: `66c1e44bda5136b8ea7068f5e78e87c857d094abf5d9b8ce3bbdf392233e1525`.
 Minimum sampled normal heap/largest block: 66,432 / 47,104 bytes; diagnostic/network/UI stack spare: 3,252 / 2,968 / 13,740 bytes.
+
+
+## Launcher platform — 2026-10-06
+
+Sparklet 1.1.0 runs in the `sparklet` slot (`ota_0`, `0x220000`) of the
+[esp32-playground platform](https://github.com/mfellner/esp32-playground), next to a
+launcher. Board code moved to the platform's `mfellner/board` component. Detailed
+evidence is in the platform's
+[migration note](https://github.com/mfellner/esp32-playground/blob/main/notes/2026-10-06-multi-app-platform.md);
+raw logs and backups stay ignored.
+
+| Gate | Evidence / status |
+| --- | --- |
+| Backup | Fresh full 16,777,216-byte image read with esptool 5.4.0 before any write, SHA-256 recorded in the platform note, and compared region by region with the device; only NVS differed, because the device ran between read and check. |
+| Migration / NVS | `device.py migrate` wrote the launcher bootloader, platform partition table, blank otadata, launcher and a Sparklet 1.1.0 QA build, each verified. NVS stayed at `0x9000`/64 KiB and was not written; its hash was unchanged before and after. Sparklet rejoined Wi-Fi with its saved Wi-Fi/server settings without reconfiguration. |
+| Live QA | 60-second QA run passed: five nodes, zero errors, minimum sampled heap 61,728 B, largest block 44,032 B; spare stacks diagnostics/network/UI 2,256 / 2,896 / 13,740 B. |
+| Switching | 20/20 USB round trips (launcher `TEST_BOOT`, Sparklet `TEST_OPEN_LAUNCHER`). Launcher → Sparklet 0.95–1.04 s and Sparklet → launcher 0.53–0.62 s to the first log line, measured over USB, not optically. |
+| Buttons / touch | User-performed and logged: Settings **Apps** button and launcher tile taps switched apps; KEY short press opened the launcher from Sparklet and started Sparklet from the launcher; two PWR short presses dimmed and woke the screen (AXP2101 IRQ status `0x49`); KEY held at reset started the launcher with the boot selection left on Sparklet. BOOT hold: the first attempt produced no event and the cause was not isolated; a later logged attempt opened the launcher and did not enter download mode. |
+| Isolation / flash guard | After `device.py install sparklet`, `esptool verify-flash` confirmed the launcher, bootloader and partition table unchanged. `idf.py flash` in this project stops with the platform guard message. |
+| Normal image | Development normal build (local platform components, 1,765,408 B): 60-second run passed with five nodes, zero errors, minimum sampled heap 66,236 B, largest block 47,104 B; spare stacks 3,308 / 2,772 / 13,740 B. Final build pinned to platform `v0.1.0` (`dependencies.lock`), 1,765,328 B; the 80-byte difference is embedded managed-component source paths. Two build directories produced identical application, slot-argument and partition-table binaries. Installed with `device.py install sparklet --boot`; 60-second run passed: zero errors, five nodes once the list loaded, minimum sampled heap 66,088 B, largest block 47,104 B; spare stacks diagnostics/network/UI 3,308 / 2,868 / 13,740 B. Application SHA-256: `9dd1d3602c2d60259ad59646ed97525b091c85cfe8c83b52c904fed6c628f613`. |
+
+Forget no longer erases the NVS partition, which the launcher and other apps share;
+it erases only Sparklet's `connection` key. The unusable-NVS path (“Storage
+unavailable; reset settings from the launcher”) was not exercised on the device.
+
+Not exercised:
+
+- Manual BOOT + power-on download mode (esptool's automatic entry worked throughout).
+- PWR 6-second power-off.
+- Battery behaviour.
+- Optical switching and touch latency.
+- Long-duration soak; the 24-hour soak remains explicitly excluded.

@@ -29,20 +29,21 @@ A USB diagnostics task accepts the documented commands. An ESP timer enforces th
 
 | File / directory | Responsibility |
 | --- | --- |
-| `firmware/sparkdash/main/main.cpp` | Board, network, UI and diagnostics startup |
+| `firmware/sparkdash/main/main.cpp` | Board, launcher buttons, network, UI and diagnostics startup; marks the app healthy for the platform crash guard |
 | `main/app.hpp` | Shared command/view declarations and state interfaces |
 | `main/network.cpp` | Wi-Fi, mDNS/DNS, HTTP, scheduling, cache publication, NVS |
 | `main/portal.cpp` | Embedded HTML/JS, setup HTTP routes, session token |
 | `main/portal_address.hpp` | Setup-interface destination guard |
 | `main/ui.cpp` | Pages, labels, bars, gestures, QR codes and dimming |
 | `main/diagnostics.cpp` | Normal and compile-time validation USB commands |
-| `components/board/` | Panel, touch, PMIC reset and LVGL adapter integration |
 | `components/core/include/core.hpp` | Bounded normalized model and shared interfaces |
 | `components/core/core.cpp` | Parsing, URLs/forms, formatting, list reconciliation, scheduler |
 | `tests/host/` | Shared-code sanitizer tests and HTTP fixture tests |
 | `tools/` | Mock server, device validators and release packager |
+| `mfellner/board` (managed) | Platform board component: panel, touch, PMIC reset and power key, LVGL adapter, IMU orientation (`board::`) |
+| `mfellner/app_switch` (managed) | Platform launcher client: open launcher, KEY/BOOT buttons, crash guard, slot flashing targets |
 
-Paths in the first table row are rooted at the repository; the following `main/` and `components/` entries are relative to `firmware/sparkdash/`.
+Paths in the first table row are rooted at the repository; the following `main/` and `components/` entries are relative to `firmware/sparkdash/`. Managed components come from the [esp32-playground platform](https://github.com/mfellner/esp32-playground) and are resolved through `dependencies.lock`.
 
 ## HTTP contract
 
@@ -153,7 +154,7 @@ Setup switches to AP+station mode, creates a random 12-character WPA2 setup pass
 
 All handlers check the socket's actual local destination against the AP address. Both IPv4 and IPv4-mapped IPv6 sockets are supported. The Host header is not used as proof of the interface. Configuration writes require the random session token; saved Wi-Fi passwords are never returned. The server/AP close after the brief success window, leaving no normal-LAN administration endpoint.
 
-NVS namespace `sparkdash` stores a version-1 `connection` blob and separate explicitly encoded version-2 `preferences` blob (version 1 remains readable). Record length, version and string termination are checked. Invalid connection bytes are cleared only from the RAM copy; firmware does not automatically erase all NVS. The explicit Forget flow handles reset, and write/commit failures report errors. Preferences are written when saved, not on each gesture or slider movement.
+NVS namespace `sparkdash` stores a version-1 `connection` blob and separate explicitly encoded version-2 `preferences` blob (version 1 remains readable). Record length, version and string termination are checked. Invalid connection bytes are cleared only from the RAM copy; firmware never erases the NVS partition. The default `nvs` partition is shared with the launcher and other platform apps, so the explicit Forget flow erases only the `connection` key in namespace `sparkdash`, and write/commit failures report errors. If NVS cannot be initialized, Forget reports “Storage unavailable; reset settings from the launcher”; the launcher's Device → Reset settings erases the saved settings of every app. Preferences are written when saved, not on each gesture or slider movement.
 
 HTTP metric transport and the local setup page are not TLS-encrypted. V1 assumes a trusted local network. Flash encryption is not enabled: physical flash dumps may contain credentials and must remain private. The application performs no DGX control actions.
 
@@ -161,18 +162,32 @@ HTTP metric transport and the local setup page are not TLS-encrypted. V1 assumes
 
 The exact schematic and active vendor integration use I2C SCL7/SDA8, QSPI clock0/data1–4/CS15, touch reset11/interrupt5. The preliminary CS5/INT15 assumption was corrected. See [provenance](../../firmware/sparkdash/PROVENANCE.md) before modifying drivers.
 
-The board wrapper retains the vendor initialization sequence, RGB565 at initial 40 MHz QSPI, ALDO3 reset, touch transform, even-coordinate update alignment and brightness command `0x51`. SH8601/CST9217 component labels are intentional despite CO5300/CST9220 advertised names. Only display-related PMIC registers are modified.
+The platform board component (`mfellner/board`, formerly `components/board` here) retains the vendor initialization sequence, RGB565 at initial 40 MHz QSPI, ALDO3 reset, touch transform, even-coordinate update alignment and brightness command `0x51`. SH8601/CST9217 component labels are intentional despite CO5300/CST9220 advertised names. Its PMIC writes are the ALDO3 display reset and the AXP2101 power-key configuration (registers `0x22`, `0x27`, `0x41`, `0x49`); charger and unrelated rails are untouched. The UI tick polls the key's interrupt status over I2C; a short PWR press toggles dimming.
 
 Rendering uses one **480 × 12 × 2 = 11,520-byte** draw stripe and one equally sized DMA rotation buffer, partial rendering, one software draw unit, a 33 ms refresh period, a 20 KiB LVGL task stack and a 64 KiB LVGL allocation budget. Graphics allocation precedes Wi-Fi startup. The two 12-row buffers preserve the former 24-row buffer budget, which followed the original 48-row allocation missing memory gates. There is no full-screen framebuffer or PSRAM assumption. QR storage is a small one-bit canvas inside LVGL's bounded heap.
 
 Other application task stacks are 8 KiB for the network worker and 5 KiB for diagnostics; the setup HTTP server uses 8 KiB. Static JSON reception/parsing storage is shared across requests. Memory acceptance still depends on observed peak/largest-block/stack evidence; allocation budgets alone do not prove it.
 
-The flash table has 64 KiB NVS at `0x9000`, 4 KiB PHY data at `0x19000`, and a 6 MiB factory application at `0x20000`. The rest of the 16 MiB flash is unallocated. Assets are compiled into the app. No OTA slots or filesystem exist; future OTA support requires an explicit USB partition migration.
+`partitions.csv` is the platform layout, copied unchanged; configuration fails if it differs:
+
+| Partition | Type | Offset | Size | Use |
+| --- | --- | --- | --- | --- |
+| `nvs` | data/nvs | `0x9000` | 64 KiB | Shared NVS; Sparklet uses namespace `sparkdash` |
+| `otadata` | data/ota | `0x19000` | 8 KiB | Boot selection |
+| `phy_init` | data/phy | `0x1B000` | 4 KiB | PHY data |
+| `launcher` | app/factory | `0x20000` | 2 MiB | Platform launcher |
+| `sparklet` | app/ota_0 | `0x220000` | 4 MiB | This application |
+| `hermes` | app/ota_1 | `0x620000` | 4 MiB | Reserved app slot |
+| `nvs_hermes` | data/nvs | `0xA20000` | 64 KiB | Reserved |
+| `storage` | data/littlefs | `0xA30000` | about 5.8 MiB | Not mounted by Sparklet |
+
+The `ota_0`/`ota_1` subtypes hold USB-installed app images that the launcher selects; Sparklet has no over-the-air update path. NVS kept its `0x9000`/64 KiB position from the single-app layout, so saved settings survived the migration. Assets are compiled into the app. Switching to the launcher (Apps button, KEY, BOOT hold) clears the boot selection and restarts; Sparklet calls `app_switch_mark_healthy()` after startup so the platform crash guard does not count a successful boot as a failure.
 
 ## Orientation and preference storage
 
 The UI's 50 ms LVGL timer samples the board accelerometer and passes screen-relative
-acceleration in g to the shared core orientation detector. The detector requires
+acceleration in g to the orientation detector (`board::OrientationDetector`, in the
+platform board component since 1.1.0). The detector requires
 300 ms of consistent dominant-axis readings, rejects flat/ambiguous/invalid motion,
 and resets settling after gaps over 150 ms. Display and input transforms use the
 same clockwise quarter-turn enum, with 480×480 logical coordinates. Rotation occurs

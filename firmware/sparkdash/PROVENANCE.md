@@ -7,7 +7,9 @@
 
 Important correction: `DisplayPort` constructor defaults and J4 schematic use **CS 15 and touch INT 5**. The example's unused `user_config.h` macros reverse these signals. This project follows the actual constructor and schematic, not those macros or the preliminary plan.
 
-The board wrapper is a small adaptation of the vendor integration, not a copy of the full demo. Its only PMIC writes configure ALDO3 at 3.3 V and toggle its enable bit for panel reset. Charger current and all unrelated power configuration remain untouched. Register definitions were cross-checked with the vendor's bundled XPowers AXP2101 implementation (`0x90` bit 2 and `0x94`).
+Since Sparklet 1.1.0 the board code lives in the platform component `mfellner/board` ([esp32-playground](https://github.com/mfellner/esp32-playground), `components/board/`), resolved as a managed component through `dependencies.lock`; it was moved there from this repository's former `components/board`. The facts below describe that component as Sparklet uses it.
+
+The board wrapper is a small adaptation of the vendor integration, not a copy of the full demo. Its PMIC writes configure ALDO3 at 3.3 V and toggle its enable bit for panel reset (`0x90` bit 2 and `0x94`, cross-checked with the vendor's bundled XPowers AXP2101 implementation), and configure the AXP2101 power key in `configure_power_key()`: `0x22` (long-press power-off rather than restart), `0x27` (long-press IRQ after 1.5 s, power-off after 6 s), `0x41` (short/long-press IRQ enable) and `0x49` (clear key IRQ status; also polled to detect presses). The PMIC keeps these across ESP32 resets, so every platform app writes the same values. Charger current and all unrelated power configuration remain untouched.
 
 The upstream board repository does not provide a top-level license grant in the inspected revision. The factual wiring and required initialization sequence are attributed here; Managed dependencies retain their own upstream licenses and notices in the component cache; `dependencies.lock` records exact versions and hashes.
 

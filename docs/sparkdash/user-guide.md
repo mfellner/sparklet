@@ -4,7 +4,7 @@
 
 ## What you need
 
-- The Waveshare ESP32-C6-Touch-AMOLED-2.16 with sparkDash firmware installed.
+- The Waveshare ESP32-C6-Touch-AMOLED-2.16 with the [esp32-playground platform](https://github.com/mfellner/esp32-playground) launcher and Sparklet 1.1.0 installed. (The standalone 1.0.0 image has no launcher, Apps button or hardware-button actions.)
 - USB power; use a data-capable cable when updating or diagnosing firmware.
 - A phone with a QR-capable camera and browser.
 - A personal 2.4 GHz Wi-Fi network and its password. The station configuration requires WPA2 or stronger personal authentication; enterprise, open and 5-GHz-only networks are outside v1.
@@ -80,6 +80,7 @@ Settings displays the server, Wi-Fi details, firmware version and a diagnostic s
 - **Save display** persists the chosen values. Slider movements preview brightness but do not write NVS on every movement.
 - After inactivity, brightness is commanded to 10%; metric polling continues.
 - The first touch after dimming is consumed to wake the screen. A subsequent touch activates controls.
+- A short press of **PWR** dims the screen immediately, or wakes it when dimmed.
 - Setup QR pages remain awake. Normal Overview, Details and Settings use the inactivity policy.
 
 The idle dim command and continued polling were measured. The user confirmed physical navigation, Details/Back and first-touch-only wake. Real button samples reached completed panel transfers in 4–19 ms; optical scan-out was not measured.
@@ -92,7 +93,25 @@ The idle dim command and continued polling were measured. The user confirmed phy
 
 **Forget connection** opens an explicit confirmation screen. **Keep settings** cancels the operation. **Forget** removes the saved connection and returns to setup; ordinary temporary Wi-Fi/server outages never erase it. A successful firmware update normally preserves the saved configuration. Full-flash restoration replaces it with the contents of the selected backup.
 
+Forget removes only Sparklet's saved connection; the settings storage is shared with the launcher and other apps. If it reports **Storage unavailable; reset settings from the launcher**, the storage could not be opened. Use the launcher's **Device → Reset settings**, which erases the saved settings of every app on the device, then set up Sparklet again.
+
 For connection and display problems, use the [troubleshooting guide](operations.md#troubleshooting).
+
+## Switching apps and buttons
+
+Sparklet runs next to a launcher that lists the apps installed on the device. Switching restarts the device into the other app, which takes about a second; saved settings are kept.
+
+| Action | Result in Sparklet |
+| --- | --- |
+| Settings → **Apps** | Opens the launcher |
+| **KEY** short press | Opens the launcher |
+| **BOOT** held for about 1 s | Opens the launcher |
+| **PWR** short press | Dims the screen, or wakes it |
+| **KEY** held while the device resets | Starts the launcher instead of Sparklet, without changing the saved choice |
+
+In the launcher, tap the Sparklet tile or press KEY to return. After unplugging and replugging, Sparklet resumes if it was running; if you left it through the launcher, the launcher appears.
+
+Holding PWR for about 6 seconds is set up to switch the board off; this was not tested. Holding BOOT while the board powers on is the chip's documented download-mode entry for firmware recovery, not a launcher gesture; that manual procedure was not exercised. A BOOT hold while Sparklet is running opened the launcher and did not enter download mode in testing.
 
 ## Automatic rotation
 

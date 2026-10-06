@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "app_switch.h"
 #include "board.hpp"
 #include "esp_app_desc.h"
 #include "esp_heap_caps.h"
@@ -24,7 +25,7 @@ uint64_t last_touch = 0;
 bool dimmed = false, was_down = false, consume_touch = false;
 int start_x = 0, start_y = 0;
 unsigned last_brightness = 0;
-spark::OrientationDetector orientation_detector;
+board::OrientationDetector orientation_detector;
 bool saving_preferences = false, preferences_error = false;
 uint32_t save_result_before = 0;
 #ifdef CONFIG_SPARKDASH_TEST_COMMANDS
@@ -113,6 +114,9 @@ void on_action(lv_event_t *e) {
         break;
     case 11:
         page = Page::SetupLink;
+        break;
+    case 13:
+        app_switch_open_launcher(); // restarts into the platform launcher
         break;
     case 12:
         page = Page::Setup;
@@ -254,7 +258,8 @@ void build() {
             lv_obj_add_state(rotate_switch, LV_STATE_CHECKED);
         button(screen, "Save display", 24, 330, 200, 10);
         button(screen, "Reconfigure", 236, 330, 220, 6);
-        button(screen, "Forget connection", 24, 386, 432, 8);
+        button(screen, "Forget connection", 24, 386, 284, 8);
+        button(screen, "Apps", 320, 386, 136, 13);
     } else if (setup_page()) {
         auto *heading = label(screen, 24, 64, 432, &lv_font_montserrat_20);
         set(heading,
@@ -444,6 +449,11 @@ void tick(lv_timer_t *) {
         }
     }
 
+    // PWR short press toggles the dimmed state; touch still wakes as before.
+    if (board::poll_power_key() & board::PowerKeyShort) {
+        dimmed = !dimmed && !view.setup;
+        last_touch = now_ms();
+    }
     unsigned desired = page == Page::Settings && brightness_slider
                            ? unsigned(lv_slider_get_value(brightness_slider))
                            : view.preferences.brightness;
@@ -511,7 +521,7 @@ void rotation_tick(lv_timer_t *) {
     if (rotation_testing)
         return;
 #endif
-    spark::Acceleration a{};
+    board::Acceleration a{};
     bool valid = board::acceleration(a);
     // Use committed preferences; unsaved switches must not affect the screen.
     bool enabled;
@@ -522,7 +532,7 @@ void rotation_tick(lv_timer_t *) {
     if (!enabled) {
         orientation_detector = {};
         if (!was_down)
-            board::set_orientation(spark::Orientation::Upright);
+            board::set_orientation(board::Orientation::Upright);
         return;
     }
     if (was_down) {
@@ -593,7 +603,7 @@ void preferences_test_ui(void *) {
         lv_obj_add_state(rotate_switch, LV_STATE_CHECKED);
     auto *original_switch = rotate_switch;
     bool unsaved = lv_obj_has_state(rotate_switch, LV_STATE_CHECKED);
-    bool ok = board::set_orientation(spark::Orientation::Clockwise90);
+    bool ok = board::set_orientation(board::Orientation::Clockwise90);
     ok &= rotate_switch == original_switch && page == Page::Settings &&
           lv_obj_has_state(rotate_switch, LV_STATE_CHECKED) == unsaved &&
           lv_slider_get_value(brightness_slider) == before.brightness &&
@@ -639,7 +649,7 @@ void preferences_self_test(bool enabled) {
     }
     vTaskDelay(pdMS_TO_TICKS(200));
     bool ok = preferences_test.stage.load() == 1 && committed &&
-              (enabled || board::orientation() == spark::Orientation::Upright);
+              (enabled || board::orientation() == board::Orientation::Upright);
     ESP_LOGI("qa_preferences", "complete=1 pass=%u auto_rotate=%u", unsigned(ok),
              unsigned(enabled));
 }
@@ -652,7 +662,7 @@ void rotation_self_test() {
     for (unsigned o = 0; o < 4; ++o) {
         if (!board::lock(1000))
             break;
-        bool applied = board::set_orientation(spark::Orientation(o));
+        bool applied = board::set_orientation(board::Orientation(o));
         board::unlock();
         ESP_LOGI("qa_rotation", "angle=%u applied=%u", o * 90, unsigned(applied));
         vTaskDelay(pdMS_TO_TICKS(500));

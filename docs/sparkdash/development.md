@@ -17,21 +17,43 @@ git rev-parse HEAD
 . ./export.sh
 ```
 
-Compare the printed revision with the pin above. The install command is the SDK's normal setup procedure; the existing verified installation is `/Users/max/esp/esp-idf-v5.5.3`. Do not clone over it. Activate `export.sh` in every new shell that runs IDF commands. Check `idf.py --version` before building. External SDK downloads/install prerequisites depend on the host; see the repository's [reference links](../references.md).
+Compare the printed revision with the pin above. The install command is the SDK's normal setup procedure; the existing verified installation is `/Users/max/esp/esp-idf-v5.5.3`. Do not clone over it. Activate `export.sh` in every new shell that runs IDF commands. Check `idf.py --version` before building. External SDK downloads/install prerequisites depend on the host; see the platform's [reference links](https://github.com/mfellner/esp32-playground/blob/main/docs/references.md).
 
-Return to the repository and build:
+Return to the root of this repository and build:
 
 ```sh
-cd /Users/max/Developer/github/mfellner/esp32-playground
-. /Users/max/esp/esp-idf-v5.5.3/export.sh
+. "$HOME/esp/esp-idf-v5.5.3/export.sh"
 idf.py -C firmware/sparkdash build
 ```
 
-For another clone location, replace the first path. The committed project defaults select the target; do not apply a different board's SDK configuration.
+The committed project defaults select the target; do not apply a different board's SDK configuration.
+
+## Platform contract
+
+Sparklet is the `sparklet` app of the [esp32-playground platform](https://github.com/mfellner/esp32-playground). `CMakeLists.txt` applies `sdkconfig.defaults.platform` (flash settings, partition table, bootloader options shared with the launcher) before `sdkconfig.defaults`, and calls `platform_app_slot(sparklet)` from the `mfellner/app_switch` component. That call:
+
+- fails configuration unless `partitions.csv` is byte-identical to the platform layout and the platform settings hold;
+- adds `idf.py sparklet-flash` and `build/sparklet-flash_args`, which write only `sparkdash.bin` to `0x220000`;
+- fails the build if the image exceeds the 4 MiB slot;
+- makes `idf.py flash` and `app-flash` stop with a guard message, because they would overwrite the launcher and reset the boot selection.
+
+Change the layout or the platform settings in the platform repository first, then copy its `components/app_switch/layout/partitions.csv` and `sdkconfig.defaults.platform` here unchanged. Board support (panel, touch, LVGL adapter, IMU orientation, PMIC power key) comes from the platform's `mfellner/board` component, and launcher switching, button handling and the crash guard come from `mfellner/app_switch`. Both are managed components. For local component development `main/idf_component.yml` may point at a platform checkout with `override_path`; commit only the pinned git version and its updated `dependencies.lock`.
+
+Flash a normal build from the repository root with the discovered port:
+
+```sh
+idf.py -C firmware/sparkdash -p PORT sparklet-flash
+```
+
+Or install through the platform tool, which also checks the device's partition table first:
+
+```sh
+uv run PLATFORM/tools/device.py install sparklet firmware/sparkdash/build
+```
 
 ## Reproducible inputs
 
-Track source, component manifests, `dependencies.lock`, `sdkconfig.defaults`, `partitions.csv` and provenance together. Managed components are resolved from the lock and kept outside tracked source. The original vendor revision is `294543798f1a44e2f2c4d2976522323f2beee11d` and the reference is `09_LVGL_V9_Test` under its IDF 5.5.3 examples.
+Track source, component manifests, `dependencies.lock`, `sdkconfig.defaults.platform`, `sdkconfig.defaults`, `partitions.csv` and provenance together. Managed components are resolved from the lock and kept outside tracked source. The original vendor revision is `294543798f1a44e2f2c4d2976522323f2beee11d` and the reference is `09_LVGL_V9_Test` under its IDF 5.5.3 examples.
 
 `CONFIG_APP_REPRODUCIBLE_BUILD=y` removes time/date/path variability. Two separate build directories produced byte-identical app, bootloader and partition binaries for candidate 3376e53. That proves binary reproducibility for those inputs, not the candidate's runtime acceptance: its subsequent USB validation is unresolved.
 
@@ -62,10 +84,10 @@ In the sparkDash validation menu enable test commands, save, then build with the
 Flash a QA build only for controlled tests, using its generated arguments:
 
 ```sh
-idf.py -C firmware/sparkdash -B firmware/sparkdash/build-qa -D SDKCONFIG="$PWD/firmware/sparkdash/sdkconfig.qa" -p PORT flash
+idf.py -C firmware/sparkdash -B firmware/sparkdash/build-qa -D SDKCONFIG="$PWD/firmware/sparkdash/sdkconfig.qa" -p PORT sparklet-flash
 ```
 
-Discover and replace `PORT` first. The [hardware instructions](../interaction.md) and verified backup requirements apply. After testing, build/flash the normal project with test controls disabled. The release packager rejects test-enabled firmware.
+Discover and replace `PORT` first. The platform's [interaction instructions](https://github.com/mfellner/esp32-playground/blob/main/docs/interaction.md) and verified backup requirements apply. QA builds also accept `TEST_OPEN_LAUNCHER`, which switches to the launcher through the same call as the Apps button, and log IMU samples through `board::set_acceleration_observer`. After testing, build/flash the normal project with test controls disabled. The release packager rejects test-enabled firmware.
 
 ## Making changes
 
@@ -78,7 +100,7 @@ Discover and replace `PORT` first. The [hardware instructions](../interaction.md
 - Add no persistent debug web service, credentials in logs, generic command shell, or DGX control endpoint as incidental debugging.
 - Keep source commits reviewable at milestone boundaries. Record unexpected hardware behavior and the actual remedy, including unsuccessful attempts that affect interpretation.
 
-`main/Kconfig.projbuild` owns the test-control option. `main/CMakeLists.txt` lists application translation units and required components. `components/board` is the only place that should need board-specific bus/panel configuration.
+`main/Kconfig.projbuild` owns the test-control option. `main/CMakeLists.txt` lists application translation units and required components. Board-specific bus, panel, touch, IMU and PMIC configuration belongs in the platform's `mfellner/board` component, not in this repository; orientation types and helpers are in its `board::` namespace.
 
 ## Debugging and artifacts
 
